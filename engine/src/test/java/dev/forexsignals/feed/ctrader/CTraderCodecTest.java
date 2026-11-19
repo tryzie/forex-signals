@@ -96,6 +96,21 @@ class CTraderCodecTest {
     }
 
     @Test
+    void specHashDoesNotDependOnMapOrder() {
+        java.util.Map<String, Object> i1 = new java.util.LinkedHashMap<>(), i2 = new java.util.LinkedHashMap<>();
+        i1.put("startSecond", 1); i1.put("endSecond", 2);
+        i2.put("endSecond", 2); i2.put("startSecond", 1);
+        java.util.Map<String, Object> h1 = new java.util.LinkedHashMap<>(), h2 = new java.util.LinkedHashMap<>();
+        h1.put("timeZone", "America/New_York"); h1.put("intervals", List.of(i1));
+        h2.put("intervals", List.of(i2)); h2.put("timeZone", "America/New_York");
+        SymbolSpec a = new SymbolSpec("EURUSD", "ctrader", "EURUSD", 1L, 5, 4, 1e5, 0.01, 0.01, 100.0, Map.of("type", "USD_PER_LOT", "preciseRate", 3.0), -0.7, 0.1, h1, Map.of());
+        SymbolSpec b = new SymbolSpec("EURUSD", "ctrader", "EURUSD", 1L, 5, 4, 1e5, 0.01, 0.01, 100.0, Map.of("preciseRate", 3.0, "type", "USD_PER_LOT"), -0.7, 0.1, h2, Map.of("other", 1));
+        assertThat(a.hash()).isEqualTo(b.hash());
+        SymbolSpec c = new SymbolSpec("EURUSD", "ctrader", "EURUSD", 1L, 5, 4, 1e5, 0.02, 0.01, 100.0, Map.of("type", "USD_PER_LOT", "preciseRate", 3.0), -0.7, 0.1, h1, Map.of());
+        assertThat(c.hash()).as("min volume change is a spec change").isNotEqualTo(a.hash());
+    }
+
+    @Test
     void trendbarsDecodeFromLowPlusDeltas() {
         ProtoOATrendbar b = ProtoOATrendbar.newBuilder().setVolume(57).setLow(108_734L).setDeltaOpen(10).setDeltaHigh(25).setDeltaClose(3)
                 .setUtcTimestampInMinutes((int) (Instant.parse("2024-01-17T10:05:00Z").getEpochSecond() / 60)).build();
