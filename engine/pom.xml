@@ -80,6 +80,19 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- The committed symbol catalogue ships inside the jar as the default (conf.xml can override it). -->
+      <resource>
+        <directory>${maven.multiModuleProjectDirectory}/config</directory>
+        <targetPath>config</targetPath>
+        <includes>
+          <include>symbols.xml</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <!-- cTrader Open API: Java generated from the vendored .proto files (order requests removed). -->
       <plugin>

@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: ${PG_DB:-forex}
       POSTGRES_USER: ${PG_USER:-forex}
       POSTGRES_PASSWORD: ${PG_PASSWORD:?set PG_PASSWORD in .env (see .env.example)}
+      # UTF8 cluster (the image's default would be SQL_ASCII with locale C).
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
       TZ: UTC
       PGTZ: UTC
     ports:

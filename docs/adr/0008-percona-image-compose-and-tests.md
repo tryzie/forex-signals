@@ -28,3 +28,14 @@ have needed the official `postgres` image.
   was wrong). Disk is fine (45 GB free on 2026-11-19).
 - The VM was raised to **6 vCPU and about 11 GB of RAM** (checked 2026-11-19), which covers Postgres,
   the JVM, the Maven build and Testcontainers running together.
+
+## Amendment (2026-11-19, Phase 1)
+Percona works with Testcontainers; **no fallback to `postgres:18` was needed**. Two adjustments:
+- **Wait strategy.** The image's config sends server logs to its logging collector, so
+  `PostgreSQLContainer`'s default wait for "database system is ready to accept connections" on stdout
+  never fires (it timed out after 60 s). Tests wait with `pg_isready -h 127.0.0.1` inside the container
+  instead. The init-phase server listens only on the Unix socket, so a TCP check succeeds only once the
+  final server is up. The compose healthcheck uses the same TCP check.
+- **Encoding.** Without arguments the image initialises the cluster as **SQL_ASCII** with locale `C`.
+  Both compose and Testcontainers set `POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C.UTF-8"`.
+  The compose volume (empty at the time) was recreated once to pick this up.

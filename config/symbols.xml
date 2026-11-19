@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Symbol catalogue (CLAUDE.md "User decisions", PLAN §2). Not secret; committed.
+
+  role       SIGNAL (strategies may trade it) | CONTEXT (read only, never traded) | DATA_ONLY (inputs to derived series)
+  class      FX | METAL | INDEX     hours: trading-hours profile used for stale detection and the gap report
+  digits     default price digits; the feed's own spec overrides it at startup
+  cluster    exposure cluster (XAU and XAG form METALS)
+  <feed>     broker symbol name per feed; required="true" = the app refuses to start if it is missing there.
+             Symbols missing on a feed are optional there (CLAUDE.md).
+  USDX stays CONTEXT and verified="false" until its contract specs and trading hours are checked by hand.
+-->
+<symbols>
+  <symbol code="EURUSD" role="SIGNAL" class="FX" base="EUR" quote="USD" digits="5" hours="FX">
+    <feed name="ctrader" symbol="EURUSD" required="true"/>
+    <feed name="deriv" symbol="frxEURUSD" required="true"/>
+  </symbol>
+  <symbol code="GBPUSD" role="SIGNAL" class="FX" base="GBP" quote="USD" digits="5" hours="FX">
+    <feed name="ctrader" symbol="GBPUSD" required="true"/>
+    <feed name="deriv" symbol="frxGBPUSD" required="true"/>
+  </symbol>
+  <symbol code="USDJPY" role="SIGNAL" class="FX" base="USD" quote="JPY" digits="3" hours="FX">
+    <feed name="ctrader" symbol="USDJPY" required="true"/>
+    <feed name="deriv" symbol="frxUSDJPY" required="true"/>
+  </symbol>
+  <symbol code="AUDUSD" role="SIGNAL" class="FX" base="AUD" quote="USD" digits="5" hours="FX">
+    <feed name="ctrader" symbol="AUDUSD" required="true"/>
+    <feed name="deriv" symbol="frxAUDUSD" required="true"/>
+  </symbol>
+  <symbol code="XAUUSD" role="SIGNAL" class="METAL" base="XAU" quote="USD" digits="2" hours="METAL" cluster="METALS">
+    <feed name="ctrader" symbol="XAUUSD" required="true"/>
+    <feed name="deriv" symbol="frxXAUUSD" required="false"/>
+  </symbol>
+  <symbol code="XAGUSD" role="SIGNAL" class="METAL" base="XAG" quote="USD" digits="3" hours="METAL" cluster="METALS">
+    <feed name="ctrader" symbol="XAGUSD" required="true"/>
+    <feed name="deriv" symbol="frxXAGUSD" required="false"/>
+  </symbol>
+  <symbol code="USDX" role="CONTEXT" class="INDEX" base="USD" quote="IDX" digits="3" hours="FX" verified="false">
+    <!-- Exact cTrader name still to be reported from the demo account (PLAN §17). -->
+    <feed name="ctrader" symbol="USDX" required="false"/>
+  </symbol>
+  <symbol code="USDCAD" role="DATA_ONLY" class="FX" base="USD" quote="CAD" digits="5" hours="FX">
+    <feed name="ctrader" symbol="USDCAD" required="false"/>
+    <feed name="deriv" symbol="frxUSDCAD" required="false"/>
+  </symbol>
+  <symbol code="USDSEK" role="DATA_ONLY" class="FX" base="USD" quote="SEK" digits="5" hours="FX">
+    <feed name="ctrader" symbol="USDSEK" required="false"/>
+    <feed name="deriv" symbol="frxUSDSEK" required="false"/>
+  </symbol>
+  <symbol code="USDCHF" role="DATA_ONLY" class="FX" base="USD" quote="CHF" digits="5" hours="FX">
+    <feed name="ctrader" symbol="USDCHF" required="false"/>
+    <feed name="deriv" symbol="frxUSDCHF" required="false"/>
+  </symbol>
+</symbols>
