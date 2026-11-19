@@ -16,6 +16,10 @@ public final class Pacer {
     private final Supplier<Instant> clock;
     private final Sleeper sleeper;
     private Instant last;
+    private long acquired;
+
+    /** Number of requests started through this pacer. */
+    public synchronized long acquired() { return acquired; }
 
     public Pacer(double maxPerSecond, Supplier<Instant> clock, Sleeper sleeper) {
         if (maxPerSecond <= 0) throw new IllegalArgumentException("maxPerSecond must be > 0");
@@ -39,5 +43,6 @@ public final class Pacer {
             }
         }
         last = now;
+        acquired++;
     }
 }

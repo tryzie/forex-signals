@@ -119,6 +119,21 @@ class AppConfigTest {
     }
 
     @Test
+    void tokenPairIsPersistedInOneRewrite(@TempDir Path dir) throws Exception {
+        Path conf = write(dir, CONF);
+        Path key = dir.resolve("p.key");
+        AppConfig cfg = AppConfig.load(conf, ConfigCrypto.loadOrCreateKey(key));
+        cfg.updateSecrets(java.util.Map.of("config/ctrader/accessToken", "new-access", "config/ctrader/refreshToken", "new-refresh"));
+        AppConfig re = AppConfig.load(conf, ConfigCrypto.loadOrCreateKey(key));
+        assertThat(re.ctrader().accessToken().value()).isEqualTo("new-access");
+        assertThat(re.ctrader().refreshToken().value()).isEqualTo("new-refresh");
+        assertThatThrownBy(() -> cfg.updateSecrets(java.util.Map.of("config/ctrader/accessToken", "x", "config/nope", "y")))
+                .hasMessageContaining("config/nope");
+        assertThat(AppConfig.load(conf, ConfigCrypto.loadOrCreateKey(key)).ctrader().accessToken().value())
+                .as("nothing written when any path is unknown").isEqualTo("new-access");
+    }
+
+    @Test
     void secretToStringNeverRevealsTheValue() {
         assertThat(new Secret("abc").toString()).isEqualTo("Secret[set]").doesNotContain("abc");
         assertThat(new AppConfig.Database("h", 1, "n", "u", new Secret("hunter2"), 1).toString()).doesNotContain("hunter2");

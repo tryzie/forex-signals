@@ -309,7 +309,11 @@ public final class MarketStore {
 
     /** Registers chunks (idempotent) and returns all chunks for the symbol that are not DONE, oldest first. */
     public List<Chunk> openChunks(String feed, String symbol, List<Instant[]> ranges) {
-        String ins = "INSERT INTO import_progress (feed, symbol, chunk_start, chunk_end, status) VALUES (?,?,?,?,'PENDING') ON CONFLICT DO NOTHING";
+        // A chunk registered earlier with a shorter end (e.g. the current month, imported last week) is extended
+        // and reopened, so the new days are fetched; re-fetching the old part is harmless (idempotent inserts).
+        String ins = "INSERT INTO import_progress (feed, symbol, chunk_start, chunk_end, status) VALUES (?,?,?,?,'PENDING') "
+                + "ON CONFLICT (feed, symbol, chunk_start) DO UPDATE SET chunk_end = EXCLUDED.chunk_end, status = 'PENDING', updated_at = now() "
+                + "WHERE import_progress.chunk_end < EXCLUDED.chunk_end";
         String sel = "SELECT * FROM import_progress WHERE feed = ? AND symbol = ? AND status <> 'DONE' AND chunk_start >= ? AND chunk_end <= ? ORDER BY chunk_start";
         List<Chunk> out = new ArrayList<>();
         try (Connection c = db.connection()) {

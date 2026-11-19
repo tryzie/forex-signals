@@ -95,6 +95,19 @@ class CandleBuilderTest {
     }
 
     @Test
+    void finishAtEmitsOnlyBarsEndingInsideTheWindow() {
+        // Window ends 12:00Z: the H4 bar 10:00-14:00Z (05:00 EST open) and the D1 bar are still forming -> dropped.
+        tick("2024-01-17T11:58:10Z", 1.1, 1.1001);
+        tick("2024-01-17T11:59:10Z", 1.1, 1.1001);
+        builder.finishAt(Instant.parse("2024-01-17T12:00:00Z"));
+        assertThat(of(Timeframe.M1)).hasSize(2);
+        assertThat(of(Timeframe.H1)).extracting(c -> c.openTime().toString()).containsExactly("2024-01-17T11:00:00Z");
+        assertThat(of(Timeframe.H4)).isEmpty();
+        assertThat(of(Timeframe.D1)).isEmpty();
+        assertThat(builder.incompleteDropped()).isEqualTo(2);
+    }
+
+    @Test
     void outOfOrderTicksInsideOneMinuteUseTimestampsForOpenAndClose() {
         tick("2024-01-17T10:00:30Z", 1.105, 1.1051);
         tick("2024-01-17T10:00:10Z", 1.101, 1.1011); // earlier timestamp, arrived later

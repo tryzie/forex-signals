@@ -61,7 +61,7 @@ class ReplayIT {
                     p.onTick(t);
                 }
                 p.onTime(TO);
-                p.finish();
+                p.finishAt(TO);
             }
             assertThat(store.scalarLong("SELECT count(*) FROM tick")).as("every tick recorded once").isEqualTo(week.size());
 
@@ -77,7 +77,7 @@ class ReplayIT {
             });
             clock.advanceTo(TO);
             p.onTime(clock.now());
-            p.finish();
+            p.finishAt(TO);
             assertThat(n).isEqualTo(week.size());
 
             // Spread calibration from the recorded ticks: every session bucket gets an exact median and p95.

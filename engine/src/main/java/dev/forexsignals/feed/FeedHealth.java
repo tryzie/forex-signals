@@ -90,6 +90,8 @@ public final class FeedHealth {
             Instant last = lastTick.getOrDefault(d.code(), startedAt);
             // A market that only just opened gets the full stale window from its open, not from the last Friday tick.
             if (!d.hours().isOpen(now.minus(limit))) continue;
+            // The daily rollover pause (16:58-17:05 NY) is normal: no alert during it or within one window after it.
+            if (d.hours().inRolloverWindow(now) || d.hours().inRolloverWindow(now.minus(limit))) continue;
             if (Duration.between(last, now).compareTo(limit) > 0 && stale.add(d.code())) {
                 Map<String, Object> detail = new LinkedHashMap<>();
                 detail.put("lastTick", last.toString());

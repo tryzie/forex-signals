@@ -109,7 +109,26 @@ public final class CandleBuilder {
         aggregate(s, m1);
     }
 
-    /** Closes and emits every forming bar (end of a replay or import run). */
+    /**
+     * End of input at {@code end} (end of a replay or import window): bars that end at or before it are
+     * complete and emitted; bars still forming past it are incomplete and dropped (counted), never stored.
+     */
+    public void finishAt(Instant end) {
+        for (SymbolState s : states.values()) {
+            if (s.m1 != null) {
+                if (!s.m1.end.isAfter(end)) closeM1(s);
+                else { s.m1 = null; incompleteDropped++; }
+            }
+            for (Timeframe tf : DERIVED) {
+                Agg a = s.derived.get(tf);
+                if (a == null) continue;
+                if (!a.end.isAfter(end)) closeDerived(s, tf);
+                else { s.derived.remove(tf); incompleteDropped++; }
+            }
+        }
+    }
+
+    /** Closes and emits every forming bar, complete or not. For tests only; production code uses finishAt. */
     public void flush() {
         for (SymbolState s : states.values()) {
             if (s.m1 != null) closeM1(s);

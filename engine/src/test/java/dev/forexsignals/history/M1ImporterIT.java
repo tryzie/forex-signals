@@ -145,4 +145,20 @@ class M1ImporterIT {
         assertThat(importer(src, new ArrayList<>()).run(List.of(eur), from, to).chunksDone()).isEqualTo(1);
         assertThat(store.chunks("synthetic2", "EURUSD")).singleElement().extracting(MarketStore.Chunk::status).isEqualTo("DONE");
     }
+
+    @Test
+    void laterImportWithALaterEndFetchesTheNewDaysOfAnOpenMonth() throws Exception {
+        SymbolDef eur = symbols.getFirst();
+        Instant from = Instant.parse("2024-03-01T00:00:00Z"), mid = Instant.parse("2024-03-13T00:00:00Z"), to = Instant.parse("2024-03-27T00:00:00Z");
+        FakeHistorySource src = new FakeHistorySource("synthetic3", List.of(eur), from, to, 13);
+        importer(src, new ArrayList<>()).run(List.of(eur), from, mid);   // "import on the 13th"
+        long first = store.countM1("synthetic3", "EURUSD");
+        importer(src, new ArrayList<>()).run(List.of(eur), from, to);    // "import again on the 27th"
+        assertThat(store.countM1("synthetic3", "EURUSD")).isGreaterThan(first).isEqualTo(src.allM1("EURUSD").size());
+        assertThat(store.chunks("synthetic3", "EURUSD")).singleElement().satisfies(c -> {
+            assertThat(c.end()).isEqualTo(to);
+            assertThat(c.status()).isEqualTo("DONE");
+            assertThat((long) c.rows()).isEqualTo(src.allM1("EURUSD").size());
+        });
+    }
 }

@@ -62,8 +62,13 @@ final class FakeHistorySource implements HistorySource {
 
     @Override public Duration maxSpan(Timeframe tf) { return span; }
 
+    private Pacer pacer;
+
+    @Override public void usePacer(Pacer pacer) { this.pacer = pacer; }
+
     @Override
     public List<Candle> fetchM1(SymbolDef symbol, Instant from, Instant to) throws Exception {
+        if (pacer != null) pacer.acquire(); // like real sources: every network request is paced
         calls++;
         onCall.run();
         if (rateLimitOnCall.test(calls)) throw new RateLimitedException("fake: too many requests");

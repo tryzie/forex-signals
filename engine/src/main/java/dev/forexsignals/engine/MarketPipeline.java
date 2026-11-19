@@ -59,8 +59,8 @@ public final class MarketPipeline {
 
     public long incompleteDropped() { return builder.incompleteDropped(); }
 
-    /** End of input (replay end, shutdown): closes and emits every forming bar. */
-    public void finish() { builder.flush(); }
+    /** End of a replay window: emits bars ending at or before {@code end}, drops the incomplete rest. */
+    public void finishAt(Instant end) { builder.finishAt(end); }
 
     public long ticks() { return ticks; }
 

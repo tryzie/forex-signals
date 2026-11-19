@@ -175,7 +175,13 @@ public final class DerivAdapter implements FeedAdapter, HistorySource {
         return tf == null ? Duration.ofMinutes(15) : tf.duration().multipliedBy(MAX_COUNT - 10);
     }
 
+    private volatile dev.forexsignals.history.Pacer pacer;
+
+    @Override
+    public void usePacer(dev.forexsignals.history.Pacer pacer) { this.pacer = pacer; }
+
     private JsonNode history(Map<String, Object> req) throws Exception {
+        if (pacer != null) pacer.acquire();
         try {
             return historyConnection().request(req, Duration.ofSeconds(60));
         } catch (DerivConnection.DerivError e) {
@@ -241,6 +247,9 @@ public final class DerivAdapter implements FeedAdapter, HistorySource {
         req.put("end", to.getEpochSecond() - 1);
         req.put("count", MAX_COUNT);
         List<Tick> ticks = parseHistoryTicks(history(req), symbol.code(), seq);
+        if (ticks.size() >= MAX_COUNT && Duration.between(from, to).toSeconds() <= 2) {
+            throw new IllegalStateException("deriv: more than " + MAX_COUNT + " ticks in " + from + " .. " + to + "; cannot split further");
+        }
         if (ticks.size() >= MAX_COUNT) {
             // Possibly truncated (only the newest MAX_COUNT are returned): split the window and fetch both halves.
             Instant mid = from.plus(Duration.between(from, to).dividedBy(2));

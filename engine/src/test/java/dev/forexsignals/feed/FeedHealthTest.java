@@ -58,11 +58,25 @@ class FeedHealthTest {
         h.onTick(tick("XAUUSD", fri));
         for (Instant t = fri; t.isBefore(Instant.parse("2024-01-21T22:00:00Z")); t = t.plusSeconds(600)) h.check(t);
         assertThat(events).isEmpty();
-        // Sunday open: FX gets its full 60 s window from the open, not from Friday's last tick.
-        h.check(Instant.parse("2024-01-21T22:00:30Z"));
-        assertThat(events).isEmpty();
+        // Sunday open at 17:00 NY is inside the rollover window (16:58-17:05), where silence is normal; the first
+        // alert can come one stale window after it, and never from Friday's last tick.
         h.check(Instant.parse("2024-01-21T22:01:01Z"));
+        h.check(Instant.parse("2024-01-21T22:05:59Z"));
+        assertThat(events).isEmpty();
+        h.check(Instant.parse("2024-01-21T22:06:00Z"));
         assertThat(events).containsExactly("STALE:EURUSD");          // metals open at 18:00 NY = 23:00Z
+    }
+
+    @Test
+    void dailyRolloverPauseIsNotStale() {
+        Instant t0 = Instant.parse("2024-01-17T21:57:30Z");          // 16:57:30 EST, last tick before rollover
+        FeedHealth h = health(t0);
+        h.onTick(tick("EURUSD", t0));
+        h.onTick(tick("XAUUSD", t0));
+        for (Instant t = t0; t.isBefore(Instant.parse("2024-01-17T22:06:00Z")); t = t.plusSeconds(5)) h.check(t); // to 17:06 EST
+        assertThat(events).isEmpty();
+        h.check(Instant.parse("2024-01-17T22:06:01Z"));              // a full minute after rollover ended, still silent
+        assertThat(events).containsExactly("STALE:EURUSD");
     }
 
     @Test

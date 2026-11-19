@@ -87,8 +87,7 @@ final class Modes {
                     @Override public String accessToken() { return cfg.ctrader().accessToken().value(); }
                     @Override public String refreshToken() { return cfg.ctrader().refreshToken().value(); }
                     @Override public void save(String access, String refresh) {
-                        cfg.updateSecret("config/ctrader/accessToken", access);
-                        cfg.updateSecret("config/ctrader/refreshToken", refresh);
+                        cfg.updateSecrets(Map.of("config/ctrader/accessToken", access, "config/ctrader/refreshToken", refresh));
                     }
                 });
             }
@@ -112,6 +111,9 @@ final class Modes {
      * thread; ticks, candles and feed events are written asynchronously. Spread stats are recomputed
      * hourly over the last 7 days. Runs until stopped (or for --duration=PT10M).
      */
+    private static final java.util.concurrent.atomic.AtomicReference<java.util.concurrent.CountDownLatch> drainedRef =
+            new java.util.concurrent.atomic.AtomicReference<>();
+
     static int live(CliArgs args, Context ctx) throws Exception {
         String feed = feedName(args, ctx.cfg());
         AppConfig.Health hc = ctx.cfg().health();
@@ -125,7 +127,7 @@ final class Modes {
             Duration flush = Duration.ofMillis(rc.flushMs());
             try (AsyncWriter<Tick> ticks = new AsyncWriter<>("ticks", rc.batchSize(), flush, ctx.store()::insertTicks);
                  AsyncWriter<Candle> candles = new AsyncWriter<>("candles", 500, flush, batch -> writeCandles(ctx.store(), batch));
-                 AsyncWriter<Runnable> events = new AsyncWriter<>("events", 50, flush, batch -> batch.forEach(Runnable::run))) {
+                 AsyncWriter<Runnable> events = new AsyncWriter<>("events", 50, flush, batch -> batch.forEach(Modes::runQuietly))) {
 
                 Map<String, SymbolDef> bySymbol = new LinkedHashMap<>();
                 symbols.forEach(d -> bySymbol.put(d.code(), d));
@@ -150,6 +152,9 @@ final class Modes {
                         try {
                             Thread.sleep(Duration.ofHours(1));
                             Instant to = Instant.now();
+                            // Keep monthly partitions ahead of now, so a long-running live process never hits
+                            // "no partition for row" (there is deliberately no DEFAULT partition).
+                            ctx.db().ensurePartitionsAroundNow(to);
                             for (SymbolDef d : symbols) SpreadStats.compute(ctx.store(), feed, d, to.minus(Duration.ofDays(7)), to);
                         } catch (InterruptedException e) {
                             return;
@@ -158,7 +163,14 @@ final class Modes {
                         }
                     }
                 });
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> stop.set(true)));
+                // SIGTERM / Ctrl-C: stop the loop, then wait until the writers have drained (the JVM halts as soon
+                // as all hooks return, so the hook must wait for the try-with-resources below to finish).
+                java.util.concurrent.CountDownLatch drained = new java.util.concurrent.CountDownLatch(1);
+                drainedRef.set(drained);
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    stop.set(true);
+                    try { drained.await(30, TimeUnit.SECONDS); } catch (InterruptedException ignored) { /* exiting */ }
+                }));
                 Instant until = args.opt("duration").map(d -> Instant.now().plus(Duration.parse(d))).orElse(Instant.MAX);
                 Instant nextTimeStep = Instant.EPOCH;
                 while (!stop.get() && Instant.now().isBefore(until)) {
@@ -174,13 +186,26 @@ final class Modes {
                         nextTimeStep = clock.now().plusMillis(500);
                     }
                 }
-                // No pipeline.finish(): a forming bar is incomplete and must not be stored as closed.
+                // No finishAt(): a forming bar is incomplete and must not be stored as closed.
                 spreadJob.interrupt();
                 log.info("live: stopped after {} ticks; {} incomplete bar(s) around connects/disconnects not stored",
                         pipeline.ticks(), pipeline.incompleteDropped());
-            }
+            } // writers closed here: everything queued is written
+            log.info("live: writers drained");
+        } finally {
+            java.util.concurrent.CountDownLatch d = drainedRef.get();
+            if (d != null) d.countDown();
         }
         return 0;
+    }
+
+    /** One failing feed-event insert must not drop the rest of its batch. */
+    static void runQuietly(Runnable r) {
+        try {
+            r.run();
+        } catch (RuntimeException e) {
+            log.error("feed event write failed: {}", e.toString());
+        }
     }
 
     static void writeCandles(MarketStore store, List<Candle> batch) {
@@ -215,6 +240,7 @@ final class Modes {
                 symbols = SymbolVerifier.verify(feed, symbols, fa.loadSymbols(symbols), ctx.store(), Instant.now());
             }
             Pacer pacer = Pacer.realTime(Math.min(ctx.cfg().importSettings().maxReqPerSec(), hist == null ? 4.0 : hist.maxRequestsPerSecond()));
+            if (hist != null) hist.usePacer(pacer);
 
             // 1. Collect the input ticks in replay order.
             List<Tick> input = new ArrayList<>();
@@ -254,7 +280,7 @@ final class Modes {
             }
             clock.advanceTo(to);
             pipeline.onTime(clock.now());
-            pipeline.finish();
+            pipeline.finishAt(to);
             if (writeCandles) writeCandles(ctx.store(), toWrite);
             Map<String, Long> late = new LinkedHashMap<>();
             symbols.forEach(d -> late.put(d.code(), pipeline.lateTicks(d.code())));
@@ -292,7 +318,7 @@ final class Modes {
     static <T> List<T> fetchWithRetry(Pacer pacer, AppConfig.Import ic, java.util.concurrent.Callable<List<T>> call) throws Exception {
         dev.forexsignals.feed.Backoff backoff = new dev.forexsignals.feed.Backoff(Duration.ofSeconds(ic.backoffMaxSec()));
         for (int attempt = 1; ; attempt++) {
-            pacer.acquire();
+            // Pacing happens inside the source, per network request (see HistorySource.usePacer).
             try {
                 return call.call();
             } catch (InterruptedException e) {

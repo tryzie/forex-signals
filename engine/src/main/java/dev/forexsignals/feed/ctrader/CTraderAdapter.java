@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * approves the app). Coded against the vendored protos; unit tests cover framing and decoding.
  *
  * Read-only by construction (CLAUDE.md rule 1):
- *  - refuses to run if the token's permission scope is SCOPE_TRADE (the token must be the "accounts" scope);
+ *  - refuses to run unless the token's permission scope is SCOPE_VIEW (the "accounts" scope);
  *  - refuses live accounts: only a demo account matching conf.xml accountNumber is used;
  *  - sends only auth, symbol, spot-subscription, trendbar, tick-data and token-refresh requests.
  * Prices on the wire are integers in 1/100000 of a unit.
@@ -247,7 +247,19 @@ public final class CTraderAdapter implements FeedAdapter, HistorySource {
                 SpotMerger merger = new SpotMerger(codeById);
                 try (CTraderConnection live = connect(
                         m -> {
-                            if (m.getPayloadType() != ProtoOAPayloadType.PROTO_OA_SPOT_EVENT_VALUE) return;
+                            int type = m.getPayloadType();
+                            if (type == ProtoOAPayloadType.PROTO_OA_ACCOUNTS_TOKEN_INVALIDATED_EVENT_VALUE
+                                    || type == ProtoOAPayloadType.PROTO_OA_CLIENT_DISCONNECT_EVENT_VALUE
+                                    || type == ProtoOAPayloadType.PROTO_OA_ACCOUNT_DISCONNECT_EVENT_VALUE) {
+                                // Token invalidated or session dropped by the server: end this connection. The supervisor
+                                // reconnects with backoff, and connect() refreshes the token when it is rejected.
+                                log.warn("cTrader: server event {} ; reconnecting", ProtoOAPayloadType.forNumber(type));
+                                dead.set(true);
+                                synchronized (lock) { lock.notifyAll(); }
+                                listener.onStatus(FeedListener.Status.DISCONNECTED, "server event " + ProtoOAPayloadType.forNumber(type));
+                                return;
+                            }
+                            if (type != ProtoOAPayloadType.PROTO_OA_SPOT_EVENT_VALUE) return;
                             try {
                                 Tick t = merger.onSpot(ProtoOASpotEvent.parseFrom(m.getPayload()), Instant.now(), seq.incrementAndGet());
                                 if (t != null) listener.onTick(t);
@@ -326,11 +338,24 @@ public final class CTraderAdapter implements FeedAdapter, HistorySource {
         return id;
     }
 
+    private volatile dev.forexsignals.history.Pacer pacer;
+
+    @Override
+    public void usePacer(dev.forexsignals.history.Pacer pacer) { this.pacer = pacer; }
+
     private ProtoMessage history(int type, com.google.protobuf.MessageLite req) throws Exception {
+        if (pacer != null) pacer.acquire();
         try {
             return historyConnection().request(type, req, Duration.ofSeconds(60));
         } catch (CTraderConnection.CTraderError e) {
             if (e.isRateLimit()) throw new RateLimitedException(e.getMessage());
+            if (e.isTokenProblem()) {
+                // Token invalidated or expired mid-session: drop the connection; the next request reconnects,
+                // which refreshes the token. The caller's retry policy repeats this request.
+                CTraderConnection c = conn;
+                conn = null;
+                if (c != null) c.close();
+            }
             throw e;
         }
     }
@@ -391,6 +416,7 @@ public final class CTraderAdapter implements FeedAdapter, HistorySource {
     /** One quote side for [from, to), oldest first, paging backwards while hasMore. Each entry {tsMillis, price}. */
     private List<long[]> tickSide(SymbolDef symbol, ProtoOAQuoteType side, Instant from, Instant to) throws Exception {
         List<long[]> all = new ArrayList<>();
+        java.util.Set<Long> boundaries = new java.util.HashSet<>();
         long end = to.toEpochMilli();
         while (end > from.toEpochMilli()) {
             ProtoOAGetTickDataRes r = ProtoOAGetTickDataRes.parseFrom(history(ProtoOAPayloadType.PROTO_OA_GET_TICKDATA_REQ_VALUE,
@@ -400,12 +426,17 @@ public final class CTraderAdapter implements FeedAdapter, HistorySource {
             all.addAll(page);
             if (!r.getHasMore() || page.isEmpty()) break;
             end = page.getLast()[0]; // oldest in this page (decoded newest-first)
+            boundaries.add(end);
         }
         all.removeIf(t -> t[0] < from.toEpochMilli() || t[0] >= to.toEpochMilli());
         all.sort(Comparator.comparingLong(t -> t[0]));
-        // Pages can overlap at the boundary millisecond: drop exact duplicates.
+        // Consecutive pages can both contain the ticks of their boundary millisecond. Drop repeats only there;
+        // equal ticks at any other millisecond are genuine and kept.
         List<long[]> dedup = new ArrayList<>(all.size());
-        for (long[] t : all) if (dedup.isEmpty() || dedup.getLast()[0] != t[0] || dedup.getLast()[1] != t[1]) dedup.add(t);
+        for (long[] t : all) {
+            boolean repeat = !dedup.isEmpty() && dedup.getLast()[0] == t[0] && dedup.getLast()[1] == t[1] && boundaries.contains(t[0]);
+            if (!repeat) dedup.add(t);
+        }
         return dedup;
     }
 

@@ -195,11 +195,23 @@ public final class AppConfig {
 
     /** Replaces a secret (e.g. a refreshed cTrader token) and persists it encrypted. */
     public synchronized void updateSecret(String path, String newValue) {
-        Element e = secretNodes.get(path);
-        if (e == null) throw new ConfigException("no secret element " + path + " in " + file);
-        e.setTextContent(crypto.encrypt(newValue, path));
-        e.setAttribute("TYPE", "ENCRYPTED");
-        secrets.put(path, new Secret(newValue));
+        updateSecrets(Map.of(path, newValue));
+    }
+
+    /**
+     * Replaces several secrets in ONE atomic file rewrite (e.g. a refreshed access + refresh token pair,
+     * which must never be persisted half-updated: the old refresh token is already used up).
+     */
+    public synchronized void updateSecrets(Map<String, String> values) {
+        for (String path : values.keySet()) {
+            if (!secretNodes.containsKey(path)) throw new ConfigException("no secret element " + path + " in " + file);
+        }
+        values.forEach((path, v) -> {
+            Element e = secretNodes.get(path);
+            e.setTextContent(crypto.encrypt(v, path));
+            e.setAttribute("TYPE", "ENCRYPTED");
+            secrets.put(path, new Secret(v));
+        });
         writeAtomically();
     }
 

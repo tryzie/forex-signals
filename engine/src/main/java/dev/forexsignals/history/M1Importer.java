@@ -23,7 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * For each symbol:
  *  1. Split [from, to) into calendar-month chunks and register them in import_progress (idempotent).
  *  2. For every chunk that is not DONE: page through it in requests of at most source.maxSpan(M1),
- *     each preceded by {@link Pacer#acquire} (<= 4 requests/s). Bars are inserted with
+ *     every network request paced by {@link Pacer} (cTrader <= 4/s, Deriv 2/s), including a source's
+ *     own paging. Bars are inserted with
  *     ON CONFLICT DO NOTHING as each page arrives.
  *  3. A rate-limit or I/O error retries the same page after an exponential backoff with jitter
  *     (1 s to backoffMax). After maxAttempts the chunk is marked FAILED and the import moves on;
@@ -49,7 +50,6 @@ public final class M1Importer {
     private final Settings settings;
     private final Pacer.Sleeper backoffSleeper;
     private final AtomicBoolean stopRequested = new AtomicBoolean();
-    private long requests;
 
     public M1Importer(HistorySource source, MarketStore store, Pacer pacer, Settings settings, Pacer.Sleeper backoffSleeper) {
         this.source = source;
@@ -62,7 +62,7 @@ public final class M1Importer {
     /** Asks the import to stop after the current request (used by tests to simulate a kill, and by SIGTERM). */
     public void requestStop() { stopRequested.set(true); }
 
-    public long requests() { return requests; }
+    public long requests() { return pacer.acquired(); }
 
     /** Calendar-month chunks covering [from, to), clipped to the range. */
     public static List<Instant[]> monthChunks(Instant from, Instant to) {
@@ -78,6 +78,7 @@ public final class M1Importer {
     }
 
     public Result run(List<SymbolDef> symbols, Instant from, Instant to) throws InterruptedException {
+        source.usePacer(pacer); // the source paces every request it sends, including its own paging
         int done = 0, failed = 0;
         long rows = 0;
         store.db().ensurePartitions(from, to);
@@ -87,7 +88,7 @@ public final class M1Importer {
             log.info("import {} {}: {} chunk(s) to do in {} .. {}", source.feed(), sym.code(), open.size(), from, to);
 
             for (MarketStore.Chunk chunk : open) {
-                if (stopRequested.get()) return new Result(done, failed, rows, requests);
+                if (stopRequested.get()) return new Result(done, failed, rows, pacer.acquired());
                 long chunkRows = 0;
                 boolean chunkOk = true;
                 String lastError = null;
@@ -100,9 +101,7 @@ public final class M1Importer {
                     Backoff backoff = new Backoff(settings.backoffMax());
                     List<Candle> bars = null;
                     for (int attempt = 1; attempt <= settings.maxAttempts() && bars == null; attempt++) {
-                        if (stopRequested.get()) return new Result(done, failed, rows, requests);
-                        pacer.acquire();
-                        requests++;
+                        if (stopRequested.get()) return new Result(done, failed, rows, pacer.acquired());
                         try {
                             bars = source.fetchM1(sym, cursor, pageEnd);
                         } catch (HistorySource.RateLimitedException e) {
@@ -159,7 +158,7 @@ public final class M1Importer {
             }
             deriveHigherTimeframes(sym, from, to);
         }
-        return new Result(done, failed, rows, requests);
+        return new Result(done, failed, rows, pacer.acquired());
     }
 
     /** Rebuilds M5..D1 for the range from candle_m1 through the live CandleBuilder path. */
@@ -181,7 +180,7 @@ public final class M1Importer {
             if (first[0]) { b.markIncompleteBefore(m1.openTime()); first[0] = false; }
             b.onClosedM1(m1);
         });
-        b.flush();
+        b.finishAt(to); // bars running past the window are incomplete and not stored
         written[0] += store.upsertDerived(batch);
         log.info("derived {} higher-timeframe candle(s) for {} {}", written[0], source.feed(), sym.code());
         return written[0];

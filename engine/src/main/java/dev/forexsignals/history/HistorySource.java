@@ -22,6 +22,12 @@ public interface HistorySource extends AutoCloseable {
 
     PriceBasis priceBasis();
 
+    /**
+     * Pacer applied by the source to EVERY network request it sends (including paging, BID+ASK pairs and
+     * bisection), so a single fetch call can never exceed the rate limit. Default: unpaced.
+     */
+    void usePacer(Pacer pacer);
+
     /** Upper bound on request rate for this source; the importer uses the lower of this and conf.xml. */
     default double maxRequestsPerSecond() { return 4.0; }
 
