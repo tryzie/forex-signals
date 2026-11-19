@@ -80,8 +80,9 @@ CREATE TABLE tick (
     feed     text NOT NULL,
     symbol   text NOT NULL,
     ts       timestamptz NOT NULL,          -- broker/feed timestamp
-    bid      double precision NOT NULL,
+    bid      double precision,              -- null when the feed has no bid
     ask      double precision,              -- null when the feed has no ask
+    quote    double precision,              -- the feed's own reference price if it publishes one (Deriv mid)
     recv_ts  timestamptz NOT NULL,          -- when we received it (for lag metrics)
     seq      bigint NOT NULL,               -- per-process arrival order, keeps replay order deterministic
     PRIMARY KEY (feed, symbol, ts, seq)

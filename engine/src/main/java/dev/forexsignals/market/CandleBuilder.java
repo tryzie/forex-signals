@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Builds bid candles: M1 from ticks, and M5/M15/H1/H4/D1 from closed M1 candles only (PLAN §5).
+ * Builds candles on the feed's price basis (bid for cTrader): M1 from ticks, and M5/M15/H1/H4/D1 from closed M1 candles only (PLAN §5).
  * Live, replay and import all use this one class (CLAUDE.md rule 3).
  *
  * Rules:
@@ -37,12 +37,14 @@ public final class CandleBuilder {
     public static final List<Timeframe> DERIVED = List.of(Timeframe.M5, Timeframe.M15, Timeframe.H1, Timeframe.H4, Timeframe.D1);
 
     private final String feed;
+    private final PriceBasis basis;
     private final Duration grace;
     private final Listener listener;
     private final Map<String, SymbolState> states = new HashMap<>();
 
-    public CandleBuilder(String feed, Duration grace, Listener listener) {
+    public CandleBuilder(String feed, PriceBasis basis, Duration grace, Listener listener) {
         this.feed = feed;
+        this.basis = basis;
         this.grace = grace;
         this.listener = listener;
     }
@@ -65,14 +67,16 @@ public final class CandleBuilder {
         closeFinished(s, t.ts(), Duration.ZERO);
 
         // 3. Apply to the forming M1 bar (start a new one if needed).
+        if (Double.isNaN(t.price(basis))) return; // no usable price for this basis (counted nowhere: feed bug)
         if (s.m1 == null) s.m1 = new M1Bar(tickBar);
         M1Bar b = s.m1;
-        if (b.count == 0 || t.ts().isBefore(b.firstTs)) { b.open = t.bid(); b.firstTs = t.ts(); }
-        if (b.count == 0 || !t.ts().isBefore(b.lastTs)) { b.close = t.bid(); b.lastTs = t.ts(); }
-        if (b.count == 0 || t.bid() > b.high) b.high = t.bid();
-        if (b.count == 0 || t.bid() < b.low) b.low = t.bid();
+        double px = t.price(basis);
+        if (b.count == 0 || t.ts().isBefore(b.firstTs)) { b.open = px; b.firstTs = t.ts(); }
+        if (b.count == 0 || !t.ts().isBefore(b.lastTs)) { b.close = px; b.lastTs = t.ts(); }
+        if (b.count == 0 || px > b.high) b.high = px;
+        if (b.count == 0 || px < b.low) b.low = px;
         b.count++;
-        if (t.hasAsk()) b.addSpread(t.spread());
+        if (!Double.isNaN(t.spread())) b.addSpread(t.spread());
     }
 
     /** Clock input: closes bars whose end + grace has passed. Call regularly in live, per event in replay. */

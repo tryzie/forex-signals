@@ -16,7 +16,7 @@ class CandleBuilderTest {
 
     private final List<Candle> closed = new ArrayList<>();
     private final List<Tick> late = new ArrayList<>();
-    private final CandleBuilder builder = new CandleBuilder("test", Duration.ofSeconds(2), new CandleBuilder.Listener() {
+    private final CandleBuilder builder = new CandleBuilder("test", PriceBasis.BID, Duration.ofSeconds(2), new CandleBuilder.Listener() {
         @Override public void onCandleClosed(Candle c) { closed.add(c); }
         @Override public void onLateTick(Tick t, Instant b) { late.add(t); }
     });
@@ -176,7 +176,7 @@ class CandleBuilderTest {
         List<Candle> fromTicks = closed.stream().filter(c -> c.timeframe() != Timeframe.M1).toList();
         List<Candle> m1s = of(Timeframe.M1);
         List<Candle> fromM1 = new ArrayList<>();
-        CandleBuilder second = new CandleBuilder("test", Duration.ofSeconds(2), fromM1::add);
+        CandleBuilder second = new CandleBuilder("test", PriceBasis.BID, Duration.ofSeconds(2), fromM1::add);
         m1s.forEach(second::onClosedM1);
         second.flush();
 
