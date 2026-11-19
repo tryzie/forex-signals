@@ -32,6 +32,11 @@ public final class SymbolCatalog {
         public double pointSize() { return Math.pow(10, -digits); }
 
         public Optional<FeedName> on(String feed) { return Optional.ofNullable(feeds.get(feed)); }
+
+        /** Same symbol with the price digits the feed reports (the feed's spec wins over symbols.xml). */
+        public SymbolDef withDigits(int feedDigits) {
+            return new SymbolDef(code, role, assetClass, base, quote, feedDigits, hours, cluster, verified, feeds);
+        }
     }
 
     private final Map<String, SymbolDef> byCode;

@@ -175,7 +175,12 @@ public final class M1Importer {
                 batch.clear();
             }
         });
-        store.streamM1(source.feed(), sym.code(), start, to, b::onClosedM1);
+        boolean[] first = {true};
+        store.streamM1(source.feed(), sym.code(), start, to, m1 -> {
+            // Bars that began before the first stored minute did not see all their data.
+            if (first[0]) { b.markIncompleteBefore(m1.openTime()); first[0] = false; }
+            b.onClosedM1(m1);
+        });
         b.flush();
         written[0] += store.upsertDerived(batch);
         log.info("derived {} higher-timeframe candle(s) for {} {}", written[0], source.feed(), sym.code());

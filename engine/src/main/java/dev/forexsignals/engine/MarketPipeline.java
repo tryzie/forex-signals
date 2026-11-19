@@ -54,6 +54,11 @@ public final class MarketPipeline {
         if (health != null) health.check(now);
     }
 
+    /** Data before t may be missing (connect, disconnect, replay start): bars started before t are dropped. */
+    public void markIncompleteBefore(Instant t) { builder.markIncompleteBefore(t); }
+
+    public long incompleteDropped() { return builder.incompleteDropped(); }
+
     /** End of input (replay end, shutdown): closes and emits every forming bar. */
     public void finish() { builder.flush(); }
 

@@ -38,7 +38,11 @@ public final class SpotCheck {
         CandleBuilder b = new CandleBuilder(feed, basis, Duration.ZERO, c -> {
             if (TIMEFRAMES.contains(c.timeframe())) byTf.computeIfAbsent(c.timeframe(), k -> new ArrayList<>()).add(c);
         });
-        store.streamM1(feed, sym.code(), Timeframe.D1.bucketStart(from), to, b::onClosedM1);
+        boolean[] first = {true};
+        store.streamM1(feed, sym.code(), Timeframe.D1.bucketStart(from), to, m1 -> {
+            if (first[0]) { b.markIncompleteBefore(m1.openTime()); first[0] = false; }
+            b.onClosedM1(m1);
+        });
         // flush() is deliberately not called: the last, possibly incomplete, bars are never offered for checking.
         List<Candle> out = new ArrayList<>();
         Random r = new Random(seed ^ sym.code().hashCode());

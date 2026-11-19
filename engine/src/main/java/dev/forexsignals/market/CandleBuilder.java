@@ -22,6 +22,9 @@ import java.util.Map;
  *  - Within a bar, open/close are the earliest/latest tick by timestamp (ties: arrival order), so the
  *    result does not depend on arrival order inside a minute.
  *  - Closed candles are emitted in timeframe order (M1 first) to the {@link Listener}.
+ *  - Incomplete bars are never emitted: a bar that started before {@link #markIncompleteBefore} (the
+ *    moment the feed (re)connected, a disconnect, or the start of a replay window) did not see all its
+ *    ticks. It is counted in {@link #incompleteDropped()} instead.
  *
  * Not thread-safe: the engine event loop is single-threaded.
  */
@@ -41,6 +44,8 @@ public final class CandleBuilder {
     private final Duration grace;
     private final Listener listener;
     private final Map<String, SymbolState> states = new HashMap<>();
+    private Instant completeFrom = Instant.MIN;
+    private long incompleteDropped;
 
     public CandleBuilder(String feed, PriceBasis basis, Duration grace, Listener listener) {
         this.feed = feed;
@@ -112,6 +117,24 @@ public final class CandleBuilder {
         }
     }
 
+    /**
+     * Declares that data before {@code t} may be missing (feed connected, disconnected or reconnected at t,
+     * or a replay starts at t). Bars that started before t are not emitted when they close.
+     */
+    public void markIncompleteBefore(Instant t) {
+        if (t.isAfter(completeFrom)) completeFrom = t;
+    }
+
+    public long incompleteDropped() { return incompleteDropped; }
+
+    private void emit(Candle c) {
+        if (c.openTime().isBefore(completeFrom)) {
+            incompleteDropped++;
+            return;
+        }
+        listener.onCandleClosed(c);
+    }
+
     public long lateTicks(String symbol) {
         SymbolState s = states.get(symbol);
         return s == null ? 0 : s.lateTicks;
@@ -135,7 +158,7 @@ public final class CandleBuilder {
         double[] sp = b.spreads();
         Candle c = new Candle(feed, s.symbol, Timeframe.M1, b.start, b.end, b.open, b.high, b.low, b.close, b.count,
                 sp.length == 0 ? Double.NaN : sp[0], median(sp), sp.length == 0 ? Double.NaN : sp[sp.length - 1], Candle.Source.BUILT);
-        listener.onCandleClosed(c);
+        emit(c);
         // Derived bars that ended before this M1 started (a gap) close first, then the M1 is aggregated.
         for (Timeframe tf : DERIVED) {
             Agg a = s.derived.get(tf);
@@ -161,7 +184,7 @@ public final class CandleBuilder {
     private void closeDerived(SymbolState s, Timeframe tf) {
         Agg a = s.derived.remove(tf);
         double[] meds = a.spreadMeds();
-        listener.onCandleClosed(new Candle(feed, s.symbol, tf, a.start, a.end, a.open, a.high, a.low, a.close, a.ticks,
+        emit(new Candle(feed, s.symbol, tf, a.start, a.end, a.open, a.high, a.low, a.close, a.ticks,
                 a.spreadMin, median(meds), a.spreadMax, Candle.Source.DERIVED));
     }
 

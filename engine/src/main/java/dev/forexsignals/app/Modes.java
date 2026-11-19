@@ -164,7 +164,11 @@ final class Modes {
                 while (!stop.get() && Instant.now().isBefore(until)) {
                     Object ev = queue.poll(250, TimeUnit.MILLISECONDS);
                     if (ev instanceof Tick t) pipeline.onTick(t);
-                    else if (ev instanceof Object[] st) health.onStatus((FeedListener.Status) st[0], (String) st[1], clock.now());
+                    else if (ev instanceof Object[] st) {
+                        // Any connect/disconnect means ticks may be missing around now: bars already forming are incomplete.
+                        pipeline.markIncompleteBefore(clock.now());
+                        health.onStatus((FeedListener.Status) st[0], (String) st[1], clock.now());
+                    }
                     if (!clock.now().isBefore(nextTimeStep)) {
                         pipeline.onTime(clock.now());
                         nextTimeStep = clock.now().plusMillis(500);
@@ -172,7 +176,8 @@ final class Modes {
                 }
                 // No pipeline.finish(): a forming bar is incomplete and must not be stored as closed.
                 spreadJob.interrupt();
-                log.info("live: stopped after {} ticks", pipeline.ticks());
+                log.info("live: stopped after {} ticks; {} incomplete bar(s) around connects/disconnects not stored",
+                        pipeline.ticks(), pipeline.incompleteDropped());
             }
         }
         return 0;
@@ -240,6 +245,7 @@ final class Modes {
                 if (c.timeframe() == Timeframe.M5) builtM5.computeIfAbsent(c.symbol(), k -> new ArrayList<>()).add(c);
                 if (writeCandles) toWrite.add(c);
             }, null, null, null);
+            pipeline.markIncompleteBefore(from); // bars that began before the window are partial
             for (Tick t : input) {
                 clock.advanceTo(t.ts());
                 pipeline.onTime(clock.now());
@@ -251,7 +257,7 @@ final class Modes {
             if (writeCandles) writeCandles(ctx.store(), toWrite);
             Map<String, Long> late = new LinkedHashMap<>();
             symbols.forEach(d -> late.put(d.code(), pipeline.lateTicks(d.code())));
-            log.info("replay: built candles {} late ticks {}", counts, late);
+            log.info("replay: built candles {} late ticks {} incomplete bars dropped at the window start {}", counts, late, pipeline.incompleteDropped());
 
             // 3. Optional check against the feed's own M5 candles.
             if (!compare) return 0;

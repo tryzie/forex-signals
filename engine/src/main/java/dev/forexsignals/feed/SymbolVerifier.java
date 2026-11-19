@@ -44,7 +44,8 @@ public final class SymbolVerifier {
                 }
                 continue;
             }
-            available.add(d);
+            // The feed's digits win over symbols.xml (point size for comparisons and spread statistics).
+            available.add(spec.digits() != null ? d.withDigits(spec.digits()) : d);
             if (store == null) continue;
             store.upsertSymbolFeed(feed, d.code(), spec.brokerSymbol(), spec.brokerSymbolId(), fn.required(), true, now);
             String hash = spec.hash();

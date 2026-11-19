@@ -76,6 +76,25 @@ class CandleBuilderTest {
     }
 
     @Test
+    void barsThatStartedBeforeAConnectAreIncompleteAndNotEmitted() {
+        // Feed connects at 10:00:40: the 10:00 M1 and the 10:00 M5 only saw part of their ticks.
+        builder.markIncompleteBefore(Instant.parse("2024-01-17T10:00:40Z"));
+        tick("2024-01-17T10:00:41Z", 1.1, 1.1001);
+        tick("2024-01-17T10:01:10Z", 1.1, 1.1001);
+        tick("2024-01-17T10:02:10Z", 1.1, 1.1001);
+        // Disconnect at 10:02:30, reconnect 10:04:20: the 10:02 and 10:04 minutes are incomplete.
+        builder.markIncompleteBefore(Instant.parse("2024-01-17T10:02:30Z"));
+        builder.markIncompleteBefore(Instant.parse("2024-01-17T10:04:20Z"));
+        tick("2024-01-17T10:04:21Z", 1.1, 1.1001);
+        tick("2024-01-17T10:05:01Z", 1.1, 1.1001);
+        tick("2024-01-17T10:10:01Z", 1.1, 1.1001);
+        // 10:01 closed (on the 10:02:10 tick) before the disconnect and saw all its ticks: kept.
+        assertThat(of(Timeframe.M1)).extracting(c -> c.openTime().toString()).containsExactly("2024-01-17T10:01:00Z", "2024-01-17T10:05:00Z");
+        assertThat(of(Timeframe.M5)).extracting(c -> c.openTime().toString()).containsExactly("2024-01-17T10:05:00Z");
+        assertThat(builder.incompleteDropped()).isEqualTo(4); // M1 10:00, 10:02, 10:04 and M5 10:00
+    }
+
+    @Test
     void outOfOrderTicksInsideOneMinuteUseTimestampsForOpenAndClose() {
         tick("2024-01-17T10:00:30Z", 1.105, 1.1051);
         tick("2024-01-17T10:00:10Z", 1.101, 1.1011); // earlier timestamp, arrived later
