@@ -52,7 +52,7 @@ class CliArgsTest {
         CliArgs a = CliArgs.parse(new String[]{"--mode=replay", "--config=/tmp/c.xml", "--feed=deriv",
                 "--symbols=EURUSD,GBPUSD", "--duration=PT10M", "--seed=7", "--from=2026-11-09T00:00:00Z",
                 "--to=2026-11-10T00:00:00Z", "--source=db", "--compare-m5", "--write-candles", "--years=3",
-                "--report=data/reports", "--list-min=5", "--per-tf=20", "--wait=PT1M"});
+                "--report=data/reports", "--list-min=5", "--per-tf=20", "--wait=PT1M", "--note=x", "--strategies=a", "--news=n.csv"});
         assertThat(a.options()).hasSize(CliArgs.KNOWN_OPTIONS.size() - 1); // "mode" is removed
         for (String key : CliArgs.KNOWN_OPTIONS) {
             if (!key.equals("mode")) assertThat(a.options()).containsKey(key);

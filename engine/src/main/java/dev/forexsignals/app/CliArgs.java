@@ -13,10 +13,10 @@ import java.util.Set;
  */
 public record CliArgs(Mode mode, Map<String, String> options) {
 
-    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK, CHATID, SPREADSAMPLE }
+    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK, CHATID, SPREADSAMPLE, FREEZE, VALIDATE }
 
     public static final String USAGE = """
-            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid|spreadsample> [options]
+            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid|spreadsample|freeze|validate> [options]
 
               common    --config=<path>      conf.xml (default ~/.forexsignals/conf.xml, or $FOREXSIGNALS_CONF)
                         --feed=<deriv|ctrader|synthetic>   default: <feed primary> in conf.xml
@@ -30,6 +30,9 @@ public record CliArgs(Mode mode, Map<String, String> options) {
               gapreport [--report=<dir>] [--list-min=5]
               spotcheck [--per-tf=20] [--seed=1] [--report=<dir>]
               spreadsample [--symbols=A,B]   one cTrader tick-history week per quarter -> spread model (resumable)
+              freeze    [--note=text]        record every strategy version's params hash BEFORE any out-of-sample test
+              validate  [--strategies=a,b] [--from=<ISO>] [--to=<ISO>] [--news=config/news.csv] [--report=<dir>]
+                        backtest + random control + cost stress + walk-forward + validation gate (Phase 2)
               chatid    [--wait=PT2M]        print the Telegram chat ID of whoever pressed Start on the bot
                         (token read from the encrypted conf.xml, never shown; no database needed)
 
@@ -39,7 +42,7 @@ public record CliArgs(Mode mode, Map<String, String> options) {
     /** Every option name the code reads (any mode). Anything else is a usage error. */
     public static final Set<String> KNOWN_OPTIONS = Set.of(
             "mode", "config", "feed", "symbols", "duration", "seed", "from", "to", "source",
-            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf", "wait");
+            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf", "wait", "note", "strategies", "news");
 
     public static final class UsageException extends Exception {
         public UsageException(String message) { super(message); }

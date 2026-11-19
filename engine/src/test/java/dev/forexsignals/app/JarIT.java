@@ -67,7 +67,7 @@ class JarIT {
         assertThat(r.exit()).as(all).isZero();
         // Every line on stdout is one JSON object (Logback + logstash encoder survived shading).
         assertThat(r.lines()).isNotEmpty().allSatisfy(l -> assertThat(l).startsWith("{\"@timestamp\":").endsWith("}"));
-        assertThat(all).contains("flyway: 3 migration(s) applied").contains("replay: built candles");
+        assertThat(all).contains("flyway: 4 migration(s) applied").contains("replay: built candles");
         // conf.xml was rewritten with the password encrypted.
         assertThat(Files.readString(conf)).contains("TYPE=\"ENCRYPTED\"").doesNotContain(c.getPassword());
         assertThat(PosixFilePermissions.toString(Files.getPosixFilePermissions(home.resolve("master.key")))).isEqualTo("rw-------");

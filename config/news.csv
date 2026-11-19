@@ -1,0 +1,196 @@
+ts_utc,currency,title,tier,source_url,time_basis,notes
+2023-11-01T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2023-11-02T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2023/november-2023,OFFICIAL_TIME,
+2023-11-03T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Oct 2023),MAJOR,https://www.bls.gov/news.release/archives/empsit_11032023.htm,OFFICIAL_TIME,
+2023-11-07T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2023/mr-23-30.html,OFFICIAL_TIME,
+2023-11-14T13:30:00Z,USD,CPI (Oct 2023),MAJOR,https://www.bls.gov/news.release/archives/cpi_11142023.htm,OFFICIAL_TIME,
+2023-12-05T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2023/mr-23-35.html,OFFICIAL_TIME,
+2023-12-08T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Nov 2023),MAJOR,https://www.bls.gov/news.release/archives/empsit_12082023.htm,OFFICIAL_TIME,
+2023-12-12T13:30:00Z,USD,CPI (Nov 2023),MAJOR,https://www.bls.gov/news.release/archives/cpi_12122023.htm,OFFICIAL_TIME,
+2023-12-13T19:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2023-12-14T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2023/december-2023,OFFICIAL_TIME,
+2023-12-14T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2023/html/ecb.mp231214~9846e62f62.en.html,OFFICIAL_TIME,
+2023-12-19T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-01-05T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Dec 2023),MAJOR,https://www.bls.gov/news.release/archives/empsit_01052024.htm,OFFICIAL_TIME,
+2024-01-11T13:30:00Z,USD,CPI (Dec 2023),MAJOR,https://www.bls.gov/news.release/archives/cpi_01112024.htm,OFFICIAL_TIME,
+2024-01-23T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-01-25T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2024/html/ecb.mp240125~f738889bde.en.html,OFFICIAL_TIME,
+2024-01-31T19:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-02-01T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2024-02-02T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jan 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_02022024.htm,OFFICIAL_TIME,
+2024-02-06T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-01.html,OFFICIAL_TIME,
+2024-02-13T13:30:00Z,USD,CPI (Jan 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_02132024.htm,OFFICIAL_TIME,
+2024-03-07T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/accounts/2024/html/ecb.mg240404~b79e424115.en.html,OFFICIAL_TIME,Date from account of the 6-7 March 2024 meeting
+2024-03-08T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Feb 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_03082024.htm,OFFICIAL_TIME,
+2024-03-12T12:30:00Z,USD,CPI (Feb 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_03122024.htm,OFFICIAL_TIME,
+2024-03-19T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-03-19T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-05.html,OFFICIAL_TIME,
+2024-03-20T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-03-21T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2024-04-05T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Mar 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_04052024.htm,OFFICIAL_TIME,
+2024-04-10T12:30:00Z,USD,CPI (Mar 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_04102024.htm,OFFICIAL_TIME,
+2024-04-11T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2024/html/ecb.is240411~9974984b58.en.html,OFFICIAL_TIME,Date from monetary policy statement page
+2024-04-26T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-05-01T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-05-03T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Apr 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_05032024.htm,OFFICIAL_TIME,
+2024-05-07T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-08.html,OFFICIAL_TIME,
+2024-05-09T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2024-05-15T12:30:00Z,USD,CPI (Apr 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_05152024.htm,OFFICIAL_TIME,
+2024-06-06T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/shared/pdf/ecb.ds240606~f4d2c4833d.en.pdf,OFFICIAL_TIME,Date from combined decisions and statement PDF
+2024-06-07T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (May 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_06072024.htm,OFFICIAL_TIME,
+2024-06-12T12:30:00Z,USD,CPI (May 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_06122024.htm,OFFICIAL_TIME,
+2024-06-12T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-06-14T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-06-18T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-12.html,OFFICIAL_TIME,
+2024-06-20T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2024-07-05T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jun 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_07052024.htm,OFFICIAL_TIME,
+2024-07-11T12:30:00Z,USD,CPI (Jun 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_07112024.htm,OFFICIAL_TIME,
+2024-07-18T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2024/html/ecb.mp240718~b9e0ddd9d5.en.html,OFFICIAL_TIME,
+2024-07-31T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-07-31T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-08-01T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2024-08-02T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jul 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_08022024.htm,OFFICIAL_TIME,
+2024-08-06T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-15.html,OFFICIAL_TIME,
+2024-08-14T12:30:00Z,USD,CPI (Jul 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_08142024.htm,OFFICIAL_TIME,
+2024-09-06T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Aug 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_09062024.htm,OFFICIAL_TIME,
+2024-09-11T12:30:00Z,USD,CPI (Aug 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_09112024.htm,OFFICIAL_TIME,
+2024-09-12T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2024/html/ecb.mp240912~67cb23badb.nl.html,OFFICIAL_TIME,Dutch-language version of the decision press release (as found)
+2024-09-18T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-09-19T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2024-09-20T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-09-24T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-18.html,OFFICIAL_TIME,
+2024-10-04T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Sep 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_10042024.htm,OFFICIAL_TIME,
+2024-10-10T12:30:00Z,USD,CPI (Sep 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_10102024.htm,OFFICIAL_TIME,
+2024-10-17T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/shared/pdf/ecb.ds241017~d7d4d9ebce.en.pdf,OFFICIAL_TIME,Date from combined decisions and statement PDF
+2024-10-31T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-11-01T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Oct 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_11012024.htm,OFFICIAL_TIME,
+2024-11-05T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-24.html,OFFICIAL_TIME,
+2024-11-07T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2024-11-07T19:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-11-13T13:30:00Z,USD,CPI (Oct 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_11132024.htm,OFFICIAL_TIME,
+2024-12-06T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Nov 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_12062024.htm,OFFICIAL_TIME,
+2024-12-10T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2024/mr-24-27.html,OFFICIAL_TIME,
+2024-12-11T13:30:00Z,USD,CPI (Nov 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_12112024.htm,OFFICIAL_TIME,
+2024-12-12T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2024/html/ecb.mp241212~2acab6e51e.en.html,OFFICIAL_TIME,
+2024-12-18T19:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2024-12-19T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2024-12-19T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2023/september/mpc-confirmed-dates-for-2024,OFFICIAL_TIME,
+2025-01-10T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Dec 2024),MAJOR,https://www.bls.gov/news.release/archives/empsit_01102025.htm,OFFICIAL_TIME,
+2025-01-15T13:30:00Z,USD,CPI (Dec 2024),MAJOR,https://www.bls.gov/news.release/archives/cpi_01152025.htm,OFFICIAL_TIME,
+2025-01-24T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2025-01-29T19:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-01-30T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/shared/pdf/ecb.ds250130~1ac86112bf.en.pdf,OFFICIAL_TIME,Date from combined decisions and statement PDF
+2025-02-06T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025,OFFICIAL_TIME,
+2025-02-07T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jan 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_02072025.htm,OFFICIAL_TIME,
+2025-02-12T13:30:00Z,USD,CPI (Jan 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_02122025.htm,OFFICIAL_TIME,
+2025-02-18T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-03.html,OFFICIAL_TIME,Marked on RBA page as last decision by the Reserve Bank Board (later decisions by the Monetary Policy Board)
+2025-03-06T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2025/html/ecb.is250306~4307bd0941.en.html,OFFICIAL_TIME,Date from monetary policy statement page
+2025-03-07T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Feb 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_03072025.htm,OFFICIAL_TIME,
+2025-03-12T12:30:00Z,USD,CPI (Feb 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_03122025.htm,OFFICIAL_TIME,
+2025-03-19T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2025-03-19T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-03-20T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025,OFFICIAL_TIME,
+2025-04-01T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-10.html,OFFICIAL_TIME,
+2025-04-04T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Mar 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_04042025.htm,OFFICIAL_TIME,
+2025-04-10T12:30:00Z,USD,CPI (Mar 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_04102025.htm,OFFICIAL_TIME,
+2025-04-17T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2025/html/ecb.mp250417~42727d0735.en.html,OFFICIAL_TIME,
+2025-05-01T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2025-05-02T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Apr 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_05022025.htm,OFFICIAL_TIME,
+2025-05-07T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-05-08T11:02:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2025/may/statement-on-the-timing-of-the-mpr-and-mpc-minutes,OFFICIAL_TIME,Published 12:02 BST instead of 12:00 (VE Day two minutes' silence); date also on https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025
+2025-05-13T12:30:00Z,USD,CPI (Apr 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_05132025.htm,OFFICIAL_TIME,
+2025-05-20T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-13.html,OFFICIAL_TIME,
+2025-06-05T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/shared/pdf/ecb.ds250605~dc79b630e3.en.pdf,OFFICIAL_TIME,Date from combined decisions and statement PDF
+2025-06-06T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (May 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_06062025.htm,OFFICIAL_TIME,
+2025-06-11T12:30:00Z,USD,CPI (May 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_06112025.htm,OFFICIAL_TIME,
+2025-06-17T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2025-06-18T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-06-19T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025,OFFICIAL_TIME,
+2025-07-03T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jun 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_07032025.htm,OFFICIAL_TIME,
+2025-07-08T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-17.html,OFFICIAL_TIME,
+2025-07-15T12:30:00Z,USD,CPI (Jun 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_07152025.htm,OFFICIAL_TIME,
+2025-07-24T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/accounts/2025/html/ecb.mg250828~071d6cc9c7.en.html,OFFICIAL_TIME,Date from account of the 23-24 July 2025 meeting
+2025-07-30T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-07-31T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2025-08-01T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jul 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_08012025.htm,OFFICIAL_TIME,
+2025-08-07T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025,OFFICIAL_TIME,
+2025-08-12T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-22.html,OFFICIAL_TIME,
+2025-08-12T12:30:00Z,USD,CPI (Jul 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_08122025.htm,OFFICIAL_TIME,
+2025-09-05T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Aug 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_09052025.htm,OFFICIAL_TIME,
+2025-09-11T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2025/html/ecb.is250911~a13675b834.en.html,OFFICIAL_TIME,Date from monetary policy statement page
+2025-09-11T12:30:00Z,USD,CPI (Aug 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_09112025.htm,OFFICIAL_TIME,
+2025-09-17T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-09-18T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025,OFFICIAL_TIME,
+2025-09-19T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2025-09-30T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-27.html,OFFICIAL_TIME,
+2025-10-24T12:30:00Z,USD,CPI (Sep 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_10242025.htm,OFFICIAL_TIME,Shutdown-delayed Friday release during the Oct 1-Nov 12 2025 lapse in appropriations; embargo 8:30 a.m. ET confirmed in release
+2025-10-29T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-10-30T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2025-10-30T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2025/html/ecb.is251030~4f74dde15e.en.html,OFFICIAL_TIME,Date from monetary policy statement page
+2025-11-04T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-31.html,OFFICIAL_TIME,
+2025-11-06T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025,OFFICIAL_TIME,
+2025-11-20T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Sep 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_11202025.htm,OFFICIAL_TIME,Shutdown-delayed (Oct 1-Nov 12 2025 lapse in appropriations); embargo 8:30 a.m. ET confirmed in release
+2025-12-09T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2025/mr-25-33.html,OFFICIAL_TIME,
+2025-12-10T19:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2025-12-16T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Nov 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_12162025.htm,OFFICIAL_TIME,Shutdown-affected; includes Oct 2025 establishment data (no separate Oct 2025 release; Oct household data not collected); embargo 8:30 a.m. ET confirmed in release
+2025-12-18T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/news/2024/september/monetary-policy-committee-dates-for-2025,OFFICIAL_TIME,
+2025-12-18T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2025/html/ecb.mp251218~58b0e415a6.en.html,OFFICIAL_TIME,
+2025-12-18T13:30:00Z,USD,CPI (Nov 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_12182025.htm,OFFICIAL_TIME,Shutdown-affected; Oct 2025 CPI never published (Oct survey data not collected); embargo 8:30 a.m. ET confirmed in release
+2025-12-19T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/past.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-01-09T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Dec 2025),MAJOR,https://www.bls.gov/news.release/archives/empsit_01092026.htm,OFFICIAL_TIME,
+2026-01-13T13:30:00Z,USD,CPI (Dec 2025),MAJOR,https://www.bls.gov/news.release/archives/cpi_01132026.htm,OFFICIAL_TIME,
+2026-01-23T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-01-28T19:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2026-02-03T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2026/mr-26-03.html,OFFICIAL_TIME,
+2026-02-05T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates,OFFICIAL_TIME,
+2026-02-05T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260205~001d26959b.en.html,OFFICIAL_TIME,
+2026-02-11T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jan 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_02112026.htm,OFFICIAL_TIME,Wednesday release (later than usual first Friday); embargo 8:30 a.m. ET confirmed in release; cause not stated on source page
+2026-02-13T13:30:00Z,USD,CPI (Jan 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_02132026.htm,OFFICIAL_TIME,Friday release; embargo 8:30 a.m. ET confirmed in release
+2026-03-06T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Feb 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_03062026.htm,OFFICIAL_TIME,
+2026-03-11T12:30:00Z,USD,CPI (Feb 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_03112026.htm,OFFICIAL_TIME,
+2026-03-17T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2026/mr-26-08.html,OFFICIAL_TIME,
+2026-03-18T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2026-03-19T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-03-19T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates,OFFICIAL_TIME,
+2026-03-19T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/accounts/2026/html/ecb.mg260416~6a27b0c258.en.html,OFFICIAL_TIME,Date from account of the 18-19 March 2026 meeting
+2026-04-03T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Mar 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_04032026.htm,OFFICIAL_TIME,
+2026-04-10T12:30:00Z,USD,CPI (Mar 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_04102026.htm,OFFICIAL_TIME,
+2026-04-28T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-04-29T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2026-04-30T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates,OFFICIAL_TIME,
+2026-04-30T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/accounts/2026/html/ecb.mg260528~a93230dc4b.en.html,OFFICIAL_TIME,Date from account of the 29-30 April 2026 meeting
+2026-05-05T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2026/mr-26-12.html,OFFICIAL_TIME,
+2026-05-08T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Apr 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_05082026.htm,OFFICIAL_TIME,
+2026-05-12T12:30:00Z,USD,CPI (Apr 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_05122026.htm,OFFICIAL_TIME,
+2026-06-05T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (May 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_06052026.htm,OFFICIAL_TIME,
+2026-06-10T12:30:00Z,USD,CPI (May 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_06102026.htm,OFFICIAL_TIME,
+2026-06-11T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260611~4d41bd5e83.en.html,OFFICIAL_TIME,
+2026-06-16T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-06-16T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2026/mr-26-15.html,OFFICIAL_TIME,
+2026-06-17T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2026-06-18T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates,OFFICIAL_TIME,
+2026-07-02T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jun 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_07022026.htm,OFFICIAL_TIME,
+2026-07-14T12:30:00Z,USD,CPI (Jun 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_07142026.htm,OFFICIAL_TIME,
+2026-07-23T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260723~29f24d99bc.en.html,OFFICIAL_TIME,
+2026-07-29T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2026-07-30T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates,OFFICIAL_TIME,
+2026-07-31T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-08-07T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Jul 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_08072026.htm,OFFICIAL_TIME,
+2026-08-11T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2026/mr-26-19.html,OFFICIAL_TIME,
+2026-08-12T12:30:00Z,USD,CPI (Jul 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_08122026.htm,OFFICIAL_TIME,
+2026-09-04T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Aug 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_09042026.htm,OFFICIAL_TIME,
+2026-09-10T12:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html,OFFICIAL_TIME,
+2026-09-11T12:30:00Z,USD,CPI (Aug 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_09112026.htm,OFFICIAL_TIME,
+2026-09-16T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2026-09-17T11:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates,OFFICIAL_TIME,
+2026-09-18T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-09-29T04:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2026/mr-26-27.html,OFFICIAL_TIME,
+2026-10-02T12:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Sep 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_10022026.htm,OFFICIAL_TIME,
+2026-10-14T12:30:00Z,USD,CPI (Sep 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_10142026.htm,OFFICIAL_TIME,
+2026-10-28T18:00:00Z,USD,FOMC rate decision (statement),MAJOR,https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm,OFFICIAL_TIME,
+2026-10-29T13:15:00Z,EUR,ECB monetary policy decision,MAJOR,https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp261029~9a493adf17.en.html,OFFICIAL_TIME,
+2026-10-30T03:00:00Z,JPY,BoJ Monetary Policy Meeting decision,MAJOR,https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm,APPROX_TIME,No fixed announcement time; final meeting day at 03:00 UTC used as an approximation
+2026-11-03T03:30:00Z,AUD,RBA cash rate decision,MAJOR,https://www.rba.gov.au/media-releases/2026/mr-26-30.html,OFFICIAL_TIME,
+2026-11-05T12:00:00Z,GBP,BoE MPC rate decision,MAJOR,https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates,OFFICIAL_TIME,
+2026-11-06T13:30:00Z,USD,Nonfarm Payrolls / Employment Situation (Oct 2026),MAJOR,https://www.bls.gov/news.release/archives/empsit_11062026.htm,OFFICIAL_TIME,
+2026-11-10T13:30:00Z,USD,CPI (Oct 2026),MAJOR,https://www.bls.gov/news.release/archives/cpi_11102026.htm,OFFICIAL_TIME,
