@@ -416,10 +416,10 @@ All timestamps are `timestamptz` in UTC. Every `run` keeps its own signals and t
 | Phase | Builds | Acceptance |
 |---|---|---|
 | **1. Foundation** | VM toolchain (JDK 25, Docker, Percona PG18, Node 22), repo, Maven (root pom + engine module, wrapper, enforcer, shade), Makefile, docker compose, conf.xml + AES, Flyway V1, `FeedAdapter` + **Deriv adapter** + **cTrader adapter** (if the app is approved by then; otherwise it moves to 1b), `SyntheticFeed`, symbol verification, tick buffer, **live spread recording**, candle builder, replay source, **M1 history importer**, gap report, feed health/stale alerts (log only), CLAUDE.md guard test (no order messages) | Replay one week of ticks → built M5 candles match cTrader trendbars for the same week (OHLC within 0 points on bid, tick-less periods absent in both, mismatch report = 0 unexplained). Unit tests: DST transitions (London and NY separately), weekend gap, intra-session gap, late tick, Friday close, H4 NY alignment. conf.xml round-trip encrypt/decrypt test. **Importer:** 3 years of M1 per symbol in month-sized chunks, paced at or below 4 history req/s (under the limit of 5), with backoff on rate-limit errors. Killing it mid-run and restarting continues from `import_progress` with no duplicates (`ON CONFLICT DO NOTHING`, verified by a row-count test). **Gap report** per symbol: unexpected gaps listed, expected gaps summarised. **Spot-check:** 20 random M15/H1/H4 bars per symbol exported as a table (EAT and server time) for you to compare with the cTrader chart or TradingView. I can't check them myself; the TradingView feed also differs from Pepperstone's, so expect small differences there. |
-| **2. Strategy engine + backtester** | Indicators (incremental), Strategy interface, registry, 3 baselines + random controls, cost model, M1-synthetic-tick backtester, backtest report (HTML/JSON) | Hand-built candle fixtures for each indicator (checked against hand calculations) and each strategy's trigger/no-trigger cases. **Regression: backtest == replay** on the same data, identical signals and trades. Lookahead test: shuffle future bars → past signals unchanged. |
-| **3. Signals + risk** | Signal lifecycle, risk gate, position sizer, exposure book, sessions, news CSV, trade tracker (tick-level), paper broker, journal | **One test per rejection reason** (15). Sizing tests for EURUSD, USDJPY, XAUUSD, XAGUSD. Tracker tests: stop, target, time stop, invalidation, expiry, same-bar ambiguity, gap through stop (filled at the worse price). Kill switch trips and requires a manual reset. Daily cap resets at 17:00 NY. |
+| **2. Strategy engine, backtester, risk and validation** (reorganised 2026-11-19, ADR 0009) | Indicators (incremental), Strategy API + registry, lookahead and warm-up guards, 3 baselines + random controls, **trade tracker**, **risk gate + position sizer + exposure book**, cost model (spread model from sampled tick weeks, commission by class, slippage, swap, 10 s latency), shared `Engine`, M1-synthetic-tick backtester, major-events news CSV, frozen parameters, **metrics, block bootstrap, walk-forward, cost stress, validation gate**, HTML/JSON report | See §14.4 (34 approved criteria). Highlights: backtest == replay on the same ticks; a peeking strategy is caught by the guard and fails the build; shuffle-future test; warm-up guard; one test per rejection reason (15); sizing tests EURUSD/USDJPY/XAUUSD/XAGUSD; tracker tests; OOS numbers withheld when the params hash changed; a bad fixture strategy is blocked by the gate; a random strategy's CI includes 0; no strategy can become LIVE. |
+| **3. Live signals** (reorganised, ADR 0009) | Live signal service + lifecycle persistence (journal: `signal`, `signal_event`), paper broker on live ticks, news CSV refresh + stale-calendar fallback live, kill-switch operations (manual reset, audit), daily-cap rollover at 17:00 NY live | Live (or replay at 1x) signals are journaled in SHADOW mode with every transition. Kill switch trips and requires a manual reset. Daily cap resets at 17:00 NY. Stale calendar switches to the fallback windows. |
 | **4. Delivery** | WebSocket hub, React dashboard, Telegram notifier | A live (or replay at 1x) signal appears on the dashboard and in Telegram within 2 s of the candle close (measured). Bot ignores other chats. |
-| **5. Paper trading + stats** | Per-strategy metrics, bootstrap, walk-forward, cost stress, validation gate, daily report, SHADOW/LIVE mode | A deliberately bad fixture strategy is blocked by the gate. A random strategy shows a CI that includes 0. The gate result is tied to the version and params hash. |
+| **5. Paper trading** (reorganised, ADR 0009) | Paper-trade tracking of live signals, the "promising after >= 100 paper signals" counter, daily report, SHADOW/LIVE switch (manual, only after a PASS for the current version + params hash) | A strategy without a current PASS cannot be switched to LIVE. The 100-signal counter is shown. Daily report sent at 17:05 NY. |
 | **6. Hardening** | Structured JSON logs, `/health` and `/metrics` (Prometheus format), restart recovery (rebuild open signals and exposure from DB), systemd unit + Docker image, deployment notes, README with screenshots, ADRs | Kill the process during replay → restart → state and open signals match exactly. Fresh-VM install with `make up` works from README alone. |
 
 ### 14.1 Phase 1 build and toolchain (Maven, ADR 0007/0008)
@@ -601,6 +601,22 @@ This is a 4-minute sample, not the calibration week.
   Short unexpected gaps (1-4 open minutes with no tick) are counted per symbol; most are quiet Asian-session minutes.
 - Spot-checks: 20 random M15/H1/H4 bars per symbol in `data/reports/spotcheck-ctrader-*.md` for the owner to compare
   with the cTrader chart (server time column = chart time).
+
+### 14.4 Phase 2 decisions (approved 2026-11-19)
+
+- **Reorganisation (ADR 0009):** tracker, risk gate, sizing and the statistics/validation gate moved into Phase 2.
+- **News in backtests:** a MAJOR-events CSV (FOMC, NFP, CPI, ECB/BoE/BoJ/RBA rate decisions), Nov 2023 to Nov 2026,
+  built from official publishers with each event's source and UTC time; reviewed by the owner before any backtest uses
+  it. Reports state that only major events are filtered, not standard high-impact ones.
+- **Spread model:** one cTrader tick-history week per quarter (12 weeks x 6 signal symbols); per-quarter medians by
+  session bucket. Sampled weeks and medians are printed in every report, which also says the model is an
+  approximation; cost stress widens it +50%.
+- **M1 fill model:** fill at the open of the first M1 bar after signal + 10 s latency, plus slippage. The bias against
+  real-tick replay on the sampled weeks is measured; if real fills are worse on average, that average is added as extra
+  slippage (and said). The worst price within that minute is reported alongside. Every report carries the fill note.
+- **Failing baselines are results.** If an M15 baseline fails on costs, its H1-entry variant runs as a new version.
+  Nothing is tuned to pass. No strategy is enabled for live signals in Phase 2.
+- The input data (news CSV, spread-sample weeks and medians) is shown to the owner before the first full backtest.
 
 ## 15. Transcript-to-strategy workflow (later, plan only)
 
