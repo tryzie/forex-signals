@@ -21,6 +21,17 @@ public final class TickBuffer {
         return r == null || r.size == 0 ? Optional.empty() : Optional.of(r.items[(r.head - 1 + capacity) % capacity]);
     }
 
+    /** The latest held tick of a symbol stamped at or before t (the alert-time reference price). */
+    public Optional<Tick> latestAtOrBefore(String symbol, java.time.Instant t) {
+        Ring r = rings.get(symbol);
+        if (r == null) return Optional.empty();
+        for (int i = 1; i <= r.size; i++) {
+            Tick k = r.items[(r.head - i + capacity) % capacity];
+            if (!k.ts().isAfter(t)) return Optional.of(k);
+        }
+        return Optional.empty();
+    }
+
     /** Ticks currently held for a symbol, oldest first. */
     public java.util.List<Tick> recent(String symbol) {
         Ring r = rings.get(symbol);
