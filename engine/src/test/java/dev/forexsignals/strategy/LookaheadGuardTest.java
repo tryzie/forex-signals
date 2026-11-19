@@ -26,10 +26,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Phase 2 criterion C6: deliberately injected lookahead must be caught by the guard. If any of these stopped throwing,
  * this test (and the build) fails.
  */
-class LookaheadGuardTest {
+public class LookaheadGuardTest {
 
     /** A strategy that runs arbitrary "peeking" code at each candle close. */
-    static Strategy peeker(Consumer<StrategyContext> peek) {
+    public static Strategy peeker(Consumer<StrategyContext> peek) {
         StrategyMeta meta = new StrategyMeta("peeker", "1", "test", List.of("EURUSD"), Timeframe.M15, List.of(Timeframe.H1), Map.of(),
                 List.of(new IndicatorRequest(Timeframe.M15, IndicatorKind.EMA, 3)));
         return new Strategy() {

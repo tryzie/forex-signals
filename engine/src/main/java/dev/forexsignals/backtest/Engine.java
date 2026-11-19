@@ -175,7 +175,10 @@ public final class Engine {
         double dist = p.proposal().stop().distance(reference);
         double stop = Math.round((reference - d.sign() * dist) / point) * point;
         double r = Math.abs(reference - stop);
-        double target = Math.round((reference + d.sign() * p.proposal().targetR() * r) / point) * point;
+        // Round the target AWAY from the reference so the price-grid level is never below the planned R multiple
+        // (rounding to nearest made 1.5R targets 1.496R and RR_TOO_LOW rejected them).
+        double targetPoints = Math.ceil(p.proposal().targetR() * r / point - 1e-6);
+        double target = reference + d.sign() * targetPoints * point;
         RiskGate.Candidate c = new RiskGate.Candidate(id, catalog.get(p.symbol()), d, at, ref.bid(), ref.ask(), stop, target,
                 STRATEGIES_LIVE, feedHealthy.test(p.symbol()));
         RiskGate.Decision dec = gate.evaluate(c, book);
