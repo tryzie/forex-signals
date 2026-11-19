@@ -22,6 +22,9 @@ public interface HistorySource extends AutoCloseable {
 
     PriceBasis priceBasis();
 
+    /** Upper bound on request rate for this source; the importer uses the lower of this and conf.xml. */
+    default double maxRequestsPerSecond() { return 4.0; }
+
     /** Largest [from, to) span one request may cover for the given data kind. */
     Duration maxSpan(Timeframe tfOrNullForTicks);
 
