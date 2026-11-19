@@ -578,7 +578,29 @@ This is a 4-minute sample, not the calibration week.
 - The VM has 44 GB free. That is fine for the import. Before long live recording, enlarge the VM disk
   (100 GB or more) or bring tick retention forward.
 
-**9. 3-year import.** Import results: see the end of Phase 1b report (filled in after the run).
+**9. 3-year import (2026-11-19, 16:58-19:06 UTC).** M1 from 2023-11-19 to 2026-11-19 for all 10 symbols, at 4 req/s,
+381 requests per symbol, about 2-2.5 minutes per symbol when the network is up.
+
+| Symbol | M1 bars | Symbol | M1 bars |
+|---|---|---|---|
+| EURUSD | 1,113,106 | XAGUSD | 1,055,724 |
+| GBPUSD | 1,113,223 | USDX | 961,601 |
+| USDJPY | 1,111,980 | USDCAD | 1,111,548 |
+| AUDUSD | 1,112,193 | USDSEK | 1,107,305 |
+| XAUUSD | 1,057,151 | USDCHF | 1,110,190 |
+
+- 10.75M M1 bars; derived M5 2.18M, M15 728k, H1 182k, H4 46.5k, D1 7.8k. 2.4 GB on disk (candle_m1 + candle).
+- 0 duplicates; `import_progress.rows` equals the table count for every symbol; all 370 month chunks DONE.
+- Resumability was tested for real: the VM lost DNS from 17:14 to about 18:49 UTC (the owner paused). The importer
+  backed off, marked one XAGUSD chunk (May 2024) FAILED after 8 attempts and continued. A plain re-run fetched only
+  that chunk (11 requests, 16,250 bars) and the hole closed.
+- Gap reports (`data/reports/gapreport-ctrader-*.md`, broker schedules): weekends, daily breaks (USDX 3 h) and
+  rollover are expected. Listed long gaps are Christmas/New Year (all symbols), Good Friday (metals and USDX),
+  the join between the import end (2026-11-19 00:00Z) and live recording, and one to check by hand:
+  **USDCHF 2025-07-31 20:59Z to 2025-08-01 05:15Z (8 h; Swiss National Day is 1 August)**.
+  Short unexpected gaps (1-4 open minutes with no tick) are counted per symbol; most are quiet Asian-session minutes.
+- Spot-checks: 20 random M15/H1/H4 bars per symbol in `data/reports/spotcheck-ctrader-*.md` for the owner to compare
+  with the cTrader chart (server time column = chart time).
 
 ## 15. Transcript-to-strategy workflow (later, plan only)
 
@@ -629,5 +651,5 @@ Resolved on 2026-11-18: Razor costs per instrument class (§3); slippage in pric
 Resolved on 2026-11-18 (second round): the R:R minimum is measured on price distances; a total-cost filter of 0.15R replaces the spread-only rule; gross and net R are journaled; an H1 variant is tried before concluding anything on costs. **Plan approved for Phase 1** once the VM is reachable.
 
 Still open:
-1. **XAGUSD commission**: read from the cTrader spec, then confirmed by your 0.01-lot demo test trade.
-2. **Symbol names** for USDX, XAUUSD and XAGUSD, plus the commission shown in each symbol's details: you'll report these from the cTrader demo.
+1. **XAGUSD commission**: the cTrader spec says 0.00 (recorded, V2); still to be confirmed by your 0.01-lot demo test trade.
+2. ~~**Symbol names** for USDX, XAUUSD and XAGUSD~~: resolved 2026-11-19 from the cTrader spec (same names as symbols.xml; commissions in §14.3). Remaining: USDX review before `verified=true`, and the USDCHF 2025-07-31 gap check.
