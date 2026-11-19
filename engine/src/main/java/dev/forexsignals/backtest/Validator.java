@@ -63,9 +63,9 @@ public final class Validator {
                              Instant killSwitchAt, long ambiguous) {}
 
     public record StrategyResult(String strategyId, String name, String version, String paramsHash, RunOutcome parent, RunOutcome control,
-                                 RunOutcome stressed, double controlProbability, Bootstrap.Ci ci, Bootstrap.Ci vsControl, WalkForward.Result walkForward,
-                                 Optional<String> oosWithheld, String regimeNote, boolean regimesCovered, ValidationGate.Result gate, UUID runId,
-                                 boolean failedOnCosts) {}
+                                 RunOutcome stressed, Metrics repricedStress, double controlProbability, Bootstrap.Ci ci, Bootstrap.Ci vsControl,
+                                 WalkForward.Result walkForward, Optional<String> oosWithheld, Instant visibleUntil, String regimeNote,
+                                 boolean regimesCovered, ValidationGate.Result gate, UUID runId, boolean failedOnCosts) {}
 
     private Validator() {}
 
@@ -73,7 +73,8 @@ public final class Validator {
     public static RunOutcome run(Inputs in, Strategy s, String role, CostModel.Settings costSettings) {
         CostModel costs = new CostModel(costSettings, in.specs(), in.spreads());
         RiskGate gate = new RiskGate(in.risk(), costs, in.news());
-        Engine e = new Engine(new Engine.Settings(in.feed(), PriceBasis.BID, Duration.ofSeconds(2), in.latency(), 10_000, in.seed()),
+        // Validation runs: synthetic M1 path ticks; the kill switch is recorded but does not halt (see Engine.Settings).
+        Engine e = new Engine(new Engine.Settings(in.feed(), PriceBasis.BID, Duration.ofSeconds(2), in.latency(), 10_000, in.seed(), false, true),
                 List.of(s), in.catalog(), gate, costs, (sym, t) -> BacktestRunner.at(in.m1(), sym, t), sym -> true);
         Map<String, M1Series> data = new TreeMap<>();
         for (String sym : s.meta().symbols()) if (in.m1().containsKey(sym)) data.put(sym, in.m1().get(sym));
@@ -109,14 +110,22 @@ public final class Validator {
                 research.runStrategy(runId, control.meta().id(), ParamsHash.of(control.meta()), "CONTROL");
             }
 
+            Optional<String> withheld = research == null ? Optional.of("no database (test run)")
+                    : ResearchStore.oosWithheldReason(research.latestFrozen(id), hash, startedAt);
+            // Withheld: NOTHING after the first in-sample year is used or shown (metrics, CI, control, stress, trades, gate).
+            Instant visibleUntil = withheld.isPresent() ? in.from().atZone(ZoneOffset.UTC).plusMonths(12).toInstant() : in.to();
+            p = restrict(p, visibleUntil);
+            c = restrict(c, visibleUntil);
+            st = restrict(st, visibleUntil);
+            Metrics repriced = Metrics.of(repriceStress(p.signals(), in.costs()));
             Bootstrap.Ci ci = Bootstrap.meanCi(p.trades(), 10_000, in.seed());
             Bootstrap.Ci vs = Bootstrap.differenceCi(p.trades(), c.trades(), 10_000, in.seed());
             WalkForward.Result wf = WalkForward.run(p.trades(), in.from(), in.to());
-            Optional<String> withheld = research == null ? Optional.of("no database (test run)")
-                    : ResearchStore.oosWithheldReason(research.latestFrozen(id), hash, startedAt);
             var regimes = regimes(store, in.feed(), parent.meta().symbols(), p.trades());
+            // Check 6 uses the WORSE of: the stressed re-run (its own trade set) and the parent's trades re-priced at stress.
+            Metrics stressForGate = Double.isNaN(repriced.expectancy()) || st.metrics().expectancy() <= repriced.expectancy() ? st.metrics() : repriced;
             ValidationGate.Result gate = ValidationGate.evaluate(new ValidationGate.Inputs(p.metrics(), ci, regimes.covered(), regimes.note(), wf,
-                    withheld.isEmpty(), withheld.orElse(""), st.metrics(), vs));
+                    withheld.isEmpty(), withheld.orElse(""), stressForGate, vs));
             boolean failedOnCosts = p.metrics().trades() > 0 && p.metrics().grossExpectancy() > 0 && p.metrics().expectancy() <= 0;
             if (research != null) {
                 research.validationResult(parent.meta().name(), parent.meta().version(), hash, runId, gate.verdict().name(),
@@ -125,11 +134,40 @@ public final class Validator {
             }
             log.info("validation {}: {} (expectancy net {}R, gross {}R, {} trades)", id, gate.verdict(), String.format("%.3f", p.metrics().expectancy()),
                     String.format("%.3f", p.metrics().grossExpectancy()), p.metrics().trades());
-            return new StrategyResult(id, parent.meta().name(), parent.meta().version(), hash, p, c, st, prob, ci, vs, wf, withheld,
-                    regimes.note(), regimes.covered(), gate, runId, failedOnCosts);
+            return new StrategyResult(id, parent.meta().name(), parent.meta().version(), hash, p, c, st, repriced, prob, ci, vs, wf, withheld,
+                    visibleUntil, regimes.note(), regimes.covered(), gate, runId, failedOnCosts);
         } finally {
             pool.shutdown();
         }
+    }
+
+    /** Only signals raised before `until` (used when out-of-sample numbers must be withheld). */
+    static RunOutcome restrict(RunOutcome o, Instant until) {
+        if (!o.signals().isEmpty() && o.signals().stream().allMatch(s -> s.signalAt.isBefore(until))) return o;
+        List<Signal> sig = o.signals().stream().filter(s -> s.signalAt.isBefore(until)).toList();
+        List<TradeR> tr = TradeR.of(sig);
+        return new RunOutcome(o.strategyId(), o.role(), o.paramsHash(), sig, tr, Metrics.of(tr), o.rejections(), o.proposals(), o.eligibleBars(),
+                o.warmupBlocked(), o.killSwitchAt() != null && o.killSwitchAt().isBefore(until) ? o.killSwitchAt() : null,
+                sig.stream().filter(x -> x.flags.contains("AMBIGUOUS_BAR")).count());
+    }
+
+    /**
+     * The parent's OWN trades re-priced at cost stress (spread x1.5, slippage x2): an extra half spread at entry (and at
+     * exit for shorts, which close on the ask) plus the entry and exit slippage once more. Unlike the stressed re-run,
+     * the trade set does not change, so cheap survivors cannot flatter the stress check.
+     */
+    static List<TradeR> repriceStress(List<Signal> signals, CostModel.Settings base) {
+        double extraSlipFactor = base.stressed().slippageMultiplier() / base.slippageMultiplier() - 1;
+        double extraSpreadFactor = base.stressed().spreadMultiplier() / base.spreadMultiplier() - 1;
+        List<TradeR> repriced = new ArrayList<>();
+        for (Signal s : signals) {
+            if (s.state != Signal.State.CLOSED || s.flags.contains("END_OF_DATA") || Double.isNaN(s.entrySpread)) continue;
+            double spreadSides = s.direction == dev.forexsignals.strategy.api.Direction.SHORT ? 2 : 1;
+            double extra = extraSpreadFactor * s.entrySpread * spreadSides + extraSlipFactor * (s.entrySlip + s.exitSlip);
+            repriced.add(new TradeR(s.symbol, s.filledAt, s.closedAt, s.grossR, s.netR - extra / s.rUnit, s.worstCaseNetR, s.closeReason.name()));
+        }
+        repriced.sort((a, b) -> a.exit().compareTo(b.exit()));
+        return repriced;
     }
 
     public record Regimes(boolean covered, String note) {}

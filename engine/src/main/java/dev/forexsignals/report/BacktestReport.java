@@ -77,6 +77,8 @@ public final class BacktestReport {
             s.put("control", outcome(r.control()));
             s.put("controlProbabilityPerEligibleBar", r.controlProbability());
             s.put("stressed", outcome(r.stressed()));
+            s.put("parentTradesRepricedAtStress", r.repricedStress());
+            s.put("visibleUntil", r.visibleUntil().toString());
             s.put("expectancyCi90", r.ci());
             s.put("vsControlCi90", r.vsControl());
             s.put("regimes", r.regimeNote());
@@ -179,6 +181,10 @@ public final class BacktestReport {
         for (var r : results) {
             h.append("<h2>").append(esc(r.strategyId())).append(" <span class=\"").append(r.gate().verdict()).append("\">").append(r.gate().verdict())
                     .append("</span></h2><p>params hash <code>").append(r.paramsHash()).append("</code></p>");
+            if (r.oosWithheld().isPresent()) {
+                h.append("<p class=\"INCONCLUSIVE\">OUT-OF-SAMPLE NUMBERS WITHHELD (").append(esc(r.oosWithheld().get()))
+                        .append("). Every number and trade below covers ONLY signals before ").append(r.visibleUntil()).append(".</p>");
+            }
             h.append("<table><tr><th>#</th><th>Check</th><th>Status</th><th>Observed</th><th>Rule</th></tr>");
             for (ValidationGate.Check c : r.gate().checks()) {
                 h.append("<tr><td>").append(c.number()).append("</td><td>").append(esc(c.name())).append("</td><td class=\"").append(c.status()).append("\">")
@@ -195,7 +201,10 @@ public final class BacktestReport {
                         .append(m.trades() == 0 ? "" : String.format(" (%.1f%%)", 100.0 * o.ambiguous() / m.trades())).append("</td><td>")
                         .append(o.killSwitchAt() == null ? "not tripped" : "tripped " + o.killSwitchAt()).append("</td><td>").append(o.warmupBlocked()).append("</td></tr>");
             }
-            h.append("</table><p>Control fires with p = ").append(String.format("%.5f", r.controlProbability())).append(" per eligible bar (parent: ")
+            h.append("</table><p>Cost stress, the parent's own trades re-priced (spread x1.5, slippage x2): net ")
+                    .append(f(r.repricedStress().expectancy())).append("R/trade; the stressed re-run (its own trade set): ")
+                    .append(f(r.stressed().metrics().expectancy())).append("R/trade. Check 6 uses the worse of the two.</p>");
+            h.append("<p>Control fires with p = ").append(String.format("%.5f", r.controlProbability())).append(" per eligible bar (parent: ")
                     .append(r.parent().proposals()).append(" proposals / ").append(r.parent().eligibleBars()).append(" eligible bars). Strategy minus control: ")
                     .append(f(r.vsControl().mean())).append("R, 90% CI ").append(f(r.vsControl().lo())).append(" .. ").append(f(r.vsControl().hi())).append(".</p>");
             h.append("<p>Rejections by reason (parent): ").append(esc(r.parent().rejections())).append("</p>");

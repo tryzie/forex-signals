@@ -48,7 +48,7 @@ public final class BacktestRunner {
                 int i = idx[k]++;
                 Instant t0 = Instant.ofEpochMilli(next);
                 double spread = spreads.median(s.symbol, t0);
-                double[] path = order(s.o[i], s.h[i], s.l[i], s.c[i], engine.netOpenDirection(s.symbol));
+                double[] path = order(s.o[i], s.h[i], s.l[i], s.c[i], engine.netOpenDirection(s.symbol, t0));
                 for (int j = 0; j < 4; j++) {
                     Instant ts = t0.plusMillis(j);
                     Tick tick = new Tick(s.feed, s.symbol, ts, path[j], path[j] + spread, ts, seq++);

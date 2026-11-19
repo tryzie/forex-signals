@@ -42,6 +42,8 @@ public final class Signal {
     public int barsSinceEntry;
     public double best = Double.NaN, mfeR, maeR;
     public double swapPrice;
+    /** Spread at the fill tick and the slippage applied at entry and exit (for the cost-stress re-pricing). */
+    public double entrySpread = Double.NaN, entrySlip, exitSlip;
     public Instant lastMark;
     /** Backtest only: the worst-case-within-the-minute entry price (see TradeTracker). */
     public double memoWorst = Double.NaN;

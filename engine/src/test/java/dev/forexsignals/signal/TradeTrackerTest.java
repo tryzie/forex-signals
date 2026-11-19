@@ -61,8 +61,8 @@ class TradeTrackerTest {
         assertThat(s.close).isEqualTo(1.0830);
         // net = (1.0830 - 1.08003 - 2 * 0.00003 commission) / 0.0015
         assertThat(s.netR).isCloseTo((1.0830 - 1.08003 - 0.00006) / 0.0015, within(1e-9));
-        // gross = mid at exit (1.08311) - mid at the alert (1.07999), over R
-        assertThat(s.grossR).isCloseTo((1.08311 - 1.07999) / 0.0015, within(1e-9));
+        // gross = the target level vs the alert bid (same side), over R: no spread, slippage or commission
+        assertThat(s.grossR).isCloseTo((1.0830 - 1.07998) / 0.0015, within(1e-9));
         assertThat(s.grossR).isGreaterThan(s.netR);
         assertThat(s.pnlUsd).isCloseTo(s.lots * 100_000 * (1.0830 - 1.08003) - s.commissionUsd, within(1e-6));
     }
@@ -119,6 +119,40 @@ class TradeTrackerTest {
         assertThat(s.swapPrice).isCloseTo(3 * -0.71 * 0.0001, within(1e-12));
         tick(Instant.parse("2024-03-08T10:00:00Z"), 1.08100, 1.08102); // + Thursday
         assertThat(s.nights).isEqualTo(4);
+    }
+
+    @Test
+    void onlyOneSwapNightOverAWeekend() {
+        Signal s = signal(Direction.LONG, 1.07998, 1.08000, 1.0785, 1.0830);
+        // filled Wednesday 10:00Z, then a tick on Friday before the close and one on Monday
+        tick(T.plusSeconds(10), 1.07999, 1.08001);
+        tick(Instant.parse("2024-03-08T15:00:00Z"), 1.08050, 1.08052);   // Wed (x3) + Thu = 4
+        assertThat(s.nights).isEqualTo(4);
+        tick(Instant.parse("2024-03-11T10:00:00Z"), 1.08050, 1.08052);   // + Friday's rollover only
+        assertThat(s.nights).isEqualTo(5);
+    }
+
+    @Test
+    void insideASyntheticM1PathTheStopFillsAtTheStopButAnOpenTickCanGap() {
+        TradeTracker synth = new TradeTracker(Rig.costs(), null, Duration.ofSeconds(10), null, true);
+        var gate = new RiskGate(RiskGate.Config.defaults(), Rig.costs(), null);
+        var c = new RiskGate.Candidate("s@1", Rig.CATALOG.get("EURUSD"), Direction.LONG, T, 1.07998, 1.08, 1.0785, 1.0830, false, true);
+        var book = new RiskGate.Book() {
+            public double equity() { return 10_000; }
+            public double dayStartEquity() { return 10_000; }
+            public boolean killSwitchTripped() { return false; }
+            public List<RiskGate.Exposure> open() { return List.of(); }
+        };
+        var p = new SignalProposal(Direction.LONG, StopRule.atrMultiple(0.001, 1.5), 2.0, 32, List.of(), "", "", Map.of());
+        Signal a = synth.register(gate.evaluate(c, book).approved(), "s", "1", "h", p, 1.0785, 1.0830);
+        synth.onTick(new Tick("t", "EURUSD", T.plusSeconds(60), 1.0800, 1.08002, T.plusSeconds(60), 1));              // open tick: fill
+        synth.onTick(new Tick("t", "EURUSD", T.plusSeconds(120).plusMillis(1), 1.0775, 1.07752, T, 2));               // bar low, inside the path
+        assertThat(a.closeReason).isEqualTo(Signal.CloseReason.STOP);
+        assertThat(a.close).as("passed through the stop: filled at it").isCloseTo(1.0785 - 0.00002, within(1e-12));
+        Signal b = synth.register(gate.evaluate(c, book).approved(), "s", "1", "h", p, 1.0785, 1.0830);
+        synth.onTick(new Tick("t", "EURUSD", T.plusSeconds(180), 1.0800, 1.08002, T, 3));
+        synth.onTick(new Tick("t", "EURUSD", T.plusSeconds(240), 1.0775, 1.07752, T, 4));                             // a bar OPEN below the stop
+        assertThat(b.close).as("a gap at the bar open fills at the worse price").isCloseTo(1.0775 - 0.00002, within(1e-12));
     }
 
     @Test

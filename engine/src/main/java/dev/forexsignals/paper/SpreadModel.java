@@ -10,9 +10,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Modelled spread for bid-only history (PLAN §14.4): the median spread of the sampled tick-history week of the same
- * quarter, per symbol and session bucket. A quarter without a sample uses the nearest sampled quarter; a bucket without
- * samples uses the median of that quarter's buckets. This is an approximation; reports say so and cost stress widens it.
+ * Modelled spread for bid-only history (PLAN §14.4): per symbol and session bucket, the median spread of the most
+ * recent sampled tick-history week that ENDED before t (6 days after its start), so a trade's costs never use data from
+ * after the trade. Before the first sample week has ended, the first sample week is used (the only exception, about the
+ * first three months of data; reported). A bucket without samples uses the median of that week's buckets. This is an approximation; reports say so and cost stress widens it.
  */
 public final class SpreadModel {
 
@@ -41,15 +42,8 @@ public final class SpreadModel {
     public double median(String symbol, Instant t) {
         TreeMap<Instant, Map<String, Double>> weeks = bySymbol.get(symbol);
         if (weeks == null || weeks.isEmpty()) throw new IllegalStateException("no spread samples for " + symbol + " (run --mode=spreadsample)");
-        // Same quarter if sampled, else the nearest sampled week in time.
-        Map<String, Double> week = null;
-        for (var e : weeks.entrySet()) if (quarter(e.getKey()).equals(quarter(t))) week = e.getValue();
-        if (week == null) {
-            var lo = weeks.floorEntry(t);
-            var hi = weeks.ceilingEntry(t);
-            week = lo == null ? hi.getValue() : hi == null ? lo.getValue()
-                    : (t.toEpochMilli() - lo.getKey().toEpochMilli() <= hi.getKey().toEpochMilli() - t.toEpochMilli() ? lo.getValue() : hi.getValue());
-        }
+        var past = weeks.floorEntry(t.minus(java.time.Duration.ofDays(6)));
+        Map<String, Double> week = past != null ? past.getValue() : weeks.firstEntry().getValue();
         Double m = week.get(SessionCalendar.bucket(t).name());
         if (m != null) return m;
         double[] v = week.values().stream().mapToDouble(Double::doubleValue).sorted().toArray();

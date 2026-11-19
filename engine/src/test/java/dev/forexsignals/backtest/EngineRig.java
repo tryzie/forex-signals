@@ -40,7 +40,7 @@ public final class EngineRig {
 
     public static Engine engine(List<Strategy> strategies, CostModel costs, Map<String, M1Series> data, long seed) {
         RiskGate gate = new RiskGate(RiskGate.Config.defaults(), costs, null);
-        return new Engine(new Engine.Settings("synthetic", PriceBasis.BID, Duration.ofSeconds(2), Duration.ofSeconds(10), 10_000, seed),
+        return new Engine(new Engine.Settings("synthetic", PriceBasis.BID, Duration.ofSeconds(2), Duration.ofSeconds(10), 10_000, seed, true, true),
                 strategies, Rig.CATALOG, gate, costs, (sym, t) -> BacktestRunner.at(data, sym, t), sym -> true);
     }
 

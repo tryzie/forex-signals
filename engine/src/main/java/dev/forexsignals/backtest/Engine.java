@@ -47,7 +47,19 @@ public final class Engine {
 
     public static final boolean STRATEGIES_LIVE = false;
 
-    public record Settings(String feed, PriceBasis basis, Duration candleGrace, Duration latency, double startingBalance, long seed) {}
+    /**
+     * killSwitchHalts: true in live/replay (the account rule). Validation backtests pass false: the kill switch is
+     * recorded (killSwitchAt) but does not stop the run, because halting censors a strategy's sample right after its
+     * worst losing streak and biases the statistics (most of all the random control's mean in "beats chance").
+     * syntheticIntraBar: ticks inside an M1 bar (ms 1..3) are the synthetic O/H/L/C path, not real prices, so a stop
+     * crossed inside the bar is filled at the stop (only a bar's open tick can gap).
+     */
+    public record Settings(String feed, PriceBasis basis, Duration candleGrace, Duration latency, double startingBalance, long seed,
+                           boolean killSwitchHalts, boolean syntheticIntraBar) {
+        public Settings(String feed, PriceBasis basis, Duration candleGrace, Duration latency, double startingBalance, long seed) {
+            this(feed, basis, candleGrace, latency, startingBalance, seed, true, false);
+        }
+    }
 
     private final Settings settings;
     private final MarketPipeline pipeline;
@@ -86,7 +98,7 @@ public final class Engine {
             proposalsByStrategy.put(s.meta().id(), 0L);
         }
         this.runner = new StrategyRunner(strategies, settings.seed());
-        this.tracker = new TradeTracker(costs, gateNews(gate), settings.latency(), m1Bars);
+        this.tracker = new TradeTracker(costs, gateNews(gate), settings.latency(), m1Bars, settings.syntheticIntraBar());
         this.pipeline = new MarketPipeline(settings.feed(), settings.basis(), settings.candleGrace(), closedThisStep::add, null, null, null);
         this.peak = settings.startingBalance();
         this.dayStartEquity = settings.startingBalance();
@@ -119,7 +131,7 @@ public final class Engine {
     public void finish(Instant end) {
         pipeline.finishAt(end);
         processCloses();
-        tracker.closeAllAtEnd(latest, end);
+        tracker.closeAllAtEnd(lastTick::get, end);
     }
 
     // ------------------------------------------------------------------------------------ candle closes
@@ -194,7 +206,7 @@ public final class Engine {
     private final RiskGate.Book book = new RiskGate.Book() {
         @Override public double equity() { return Engine.this.equity(); }
         @Override public double dayStartEquity() { return dayStartEquity; }
-        @Override public boolean killSwitchTripped() { return killSwitchAt != null; }
+        @Override public boolean killSwitchTripped() { return killSwitchAt != null && settings.killSwitchHalts(); }
         @Override public List<RiskGate.Exposure> open() {
             List<RiskGate.Exposure> out = new ArrayList<>();
             for (Signal s : tracker.open()) out.add(new RiskGate.Exposure(catalog.get(s.symbol), s.direction));
@@ -220,7 +232,9 @@ public final class Engine {
         peak = Math.max(peak, eq);
         if (killSwitchAt == null && eq <= peak * (1 - gate.config().killSwitchPct() / 100)) {
             killSwitchAt = now;
-            for (Signal s : List.copyOf(tracker.open())) tracker.requestExit(s, now, Signal.CloseReason.KILL_SWITCH, "kill switch: equity -10% from peak");
+            if (settings.killSwitchHalts()) {
+                for (Signal s : List.copyOf(tracker.open())) tracker.requestExit(s, now, Signal.CloseReason.KILL_SWITCH, "kill switch: equity -10% from peak");
+            }
         }
     }
 
@@ -228,11 +242,15 @@ public final class Engine {
 
     public List<Signal> signals() { return tracker.all(); }
 
-    /** +1 if every open (active) trade on the symbol is long, -1 if all short, 0 if none or mixed. */
-    public int netOpenDirection(String symbol) {
+    /**
+     * +1 if every open trade on the symbol that is active, or pending and due to fill by barOpen, is long; -1 if all short;
+     * 0 if none or mixed (the bar path then follows the bar's own direction and ambiguity is flagged by the tracker).
+     */
+    public int netOpenDirection(String symbol, Instant barOpen) {
         int longs = 0, shorts = 0;
         for (Signal s : tracker.open()) {
-            if (!s.symbol.equals(symbol) || s.state != Signal.State.ACTIVE) continue;
+            if (!s.symbol.equals(symbol)) continue;
+            if (s.state == Signal.State.PENDING && s.fillAfter.isAfter(barOpen)) continue;
             if (s.direction == Direction.LONG) longs++; else shorts++;
         }
         return longs > 0 && shorts == 0 ? 1 : shorts > 0 && longs == 0 ? -1 : 0;

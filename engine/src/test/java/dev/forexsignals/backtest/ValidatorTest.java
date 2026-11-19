@@ -35,6 +35,8 @@ class ValidatorTest {
         assertThat(r.stressed().metrics().trades() == 0 || r.stressed().metrics().avgCostR() >= r.parent().metrics().avgCostR() - 1e-9)
                 .as("stressed costs are never cheaper").isTrue();
         assertThat(r.oosWithheld()).isPresent();
+        assertThat(r.repricedStress().trades()).as("same trade set as the parent").isEqualTo(r.parent().metrics().trades());
+        if (r.parent().metrics().trades() > 0) assertThat(r.repricedStress().expectancy()).isLessThan(r.parent().metrics().expectancy());
         assertThat(r.gate().verdict().name()).isNotEqualTo("PASS"); // 3 months of synthetic data cannot pass (sample, WITHHELD)
 
         Path html = BacktestReport.write(dir, new BacktestReport.Context(Instant.parse("2026-11-20T00:00:00Z"), "synthetic", EngineRig.FROM, EngineRig.TO,

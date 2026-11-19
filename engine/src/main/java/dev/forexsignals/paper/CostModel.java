@@ -77,7 +77,7 @@ public final class CostModel {
     public double slippage(String symbol, Instant t, boolean inNewsWindow) {
         double base = settings.slippage().getOrDefault(slippageClass(spec(symbol)), 0.0);
         double m = inNewsWindow ? 3.0 : (SessionCalendar.londonOpen(t) || SessionCalendar.newYorkOpen(t)) ? 1.0 : 2.0;
-        return base * m * settings.slippageMultiplier() + settings.extraSlippage().getOrDefault(symbol, 0.0);
+        return (base * m + settings.extraSlippage().getOrDefault(symbol, 0.0)) * settings.slippageMultiplier();
     }
 
     /** Modelled spread (bid-only history) including the stress multiplier. */

@@ -39,6 +39,27 @@ class CostAndSizingTest {
         assertThat(stressed.modelledSpread("EURUSD", LONDON)).isCloseTo(0.00003, within(1e-15)); // +50%
     }
 
+    @Test
+    void spreadModelUsesOnlySampleWeeksThatEndedBeforeTheTrade() {
+        var samples = new java.util.ArrayList<dev.forexsignals.paper.SpreadModel.Sample>();
+        for (String b : new String[]{"ASIA", "LONDON", "OVERLAP", "NEW_YORK", "ROLLOVER"}) {
+            samples.add(new dev.forexsignals.paper.SpreadModel.Sample("EURUSD", "2024Q1", Instant.parse("2024-02-11T00:00:00Z"), b, 0.00010, 0.0002, 1));
+            samples.add(new dev.forexsignals.paper.SpreadModel.Sample("EURUSD", "2024Q2", Instant.parse("2024-05-12T00:00:00Z"), b, 0.00020, 0.0004, 1));
+        }
+        var m = new dev.forexsignals.paper.SpreadModel(samples);
+        assertThat(m.median("EURUSD", Instant.parse("2024-05-14T10:00:00Z"))).as("Q2 week not finished yet").isEqualTo(0.00010);
+        assertThat(m.median("EURUSD", Instant.parse("2024-05-20T10:00:00Z"))).isEqualTo(0.00020);
+        assertThat(m.median("EURUSD", Instant.parse("2024-01-10T10:00:00Z"))).as("before any finished week: the first one").isEqualTo(0.00010);
+    }
+
+    @Test
+    void stressDoublesTheMeasuredFillBiasToo() {
+        var withBias = new CostModel(Rig.COSTS.withExtraSlippage(java.util.Map.of("EURUSD", 0.00001)), Rig.SPECS, Rig.spreads(Rig.MEDIANS));
+        var stressed = new CostModel(Rig.COSTS.withExtraSlippage(java.util.Map.of("EURUSD", 0.00001)).stressed(), Rig.SPECS, Rig.spreads(Rig.MEDIANS));
+        assertThat(withBias.slippage("EURUSD", LONDON, false)).isCloseTo(0.00003, within(1e-15));
+        assertThat(stressed.slippage("EURUSD", LONDON, false)).isCloseTo(0.00006, within(1e-15));
+    }
+
     private static RiskGate.Decision size(String symbol, double bid, double ask, double stop, double equity) {
         RiskGate gate = new RiskGate(RiskGate.Config.defaults(), Rig.costs(), null);
         double ref = ask, r = ref - stop;
