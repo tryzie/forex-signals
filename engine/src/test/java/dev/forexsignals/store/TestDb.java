@@ -42,8 +42,8 @@ public final class TestDb {
         return container;
     }
 
-    /** Creates an empty database and returns a migrated {@link Database} on it. */
-    public static Database freshMigrated() {
+    /** Creates an empty database and returns its name. */
+    public static String createDatabase() {
         PostgreSQLContainer c = container();
         String name = "t" + ProcessHandle.current().pid() + "_" + COUNTER.incrementAndGet();
         try (Connection admin = DriverManager.getConnection(c.getJdbcUrl(), c.getUsername(), c.getPassword());
@@ -52,7 +52,13 @@ public final class TestDb {
         } catch (Exception e) {
             throw new IllegalStateException("cannot create test database", e);
         }
-        Database db = Database.connect(jdbcUrl(name), c.getUsername(), c.getPassword(), 4);
+        return name;
+    }
+
+    /** Creates an empty database and returns a migrated {@link Database} on it. */
+    public static Database freshMigrated() {
+        PostgreSQLContainer c = container();
+        Database db = Database.connect(jdbcUrl(createDatabase()), c.getUsername(), c.getPassword(), 4);
         db.migrate();
         return db;
     }
