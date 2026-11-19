@@ -62,11 +62,12 @@
   <risk startingBalance="10000" riskPct="1.0" dailyLossPct="3.0" killSwitchPct="10.0" maxOpen="3"
         minRR="1.5" maxPerCurrencyDirection="2" maxNetUsd="2" maxCostR="0.15" entryLatencySec="10"/>
   <costs profile="pepperstone_razor_ctrader">
-    <!-- Commission per side per lot in USD, per instrument class. XAG is unknown: must be verified
-         against the cTrader symbol spec and a 0.01-lot demo statement before Phase 3. -->
+    <!-- Commission per side per lot in USD, per instrument class. All three match the cTrader spec of the
+         Pepperstone demo (read 2026-11-19): FX 3.00 and XAU 3.50 USD_PER_LOT; XAG has rate 0. XAG is still to be
+         confirmed with a 0.01-lot demo statement before Phase 3 (the statement wins). -->
     <commission class="FX" perSidePerLot="3.00"/>
     <commission class="XAU" perSidePerLot="3.50"/>
-    <commission class="XAG" perSidePerLot=""/>
+    <commission class="XAG" perSidePerLot="0.00"/>
     <!-- Slippage in price units, x2 outside London/NY, x3 in news windows (never beyond x3). -->
     <slippage symbolClass="FX" price="0.00002"/>
     <slippage symbolClass="FX_JPY" price="0.002"/>

@@ -410,6 +410,22 @@ public final class MarketStore {
         }
     }
 
+    /** The latest stored trading-hours map of a symbol's spec on a feed (empty if none). */
+    @SuppressWarnings("unchecked")
+    public Optional<Map<String, Object>> latestTradingHours(String feed, String symbol) {
+        String sql = "SELECT trading_hours::text FROM symbol_spec WHERE feed = ? AND symbol = ? ORDER BY captured_at DESC, id DESC LIMIT 1";
+        try (Connection c = db.connection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, feed);
+            ps.setString(2, symbol);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next() || rs.getString(1) == null) return Optional.empty();
+                return Optional.of(JSON.readValue(rs.getString(1), Map.class));
+            }
+        } catch (SQLException | java.io.IOException e) {
+            throw new Database.StoreException("latest trading hours", e);
+        }
+    }
+
     public void insertSpec(dev.forexsignals.feed.SymbolSpec s, Instant at) {
         String sql = "INSERT INTO symbol_spec (symbol, feed, digits, pip_position, contract_size, min_volume, volume_step, max_volume, "
                 + "commission, swap_long, swap_short, trading_hours, raw, spec_hash, captured_at) "

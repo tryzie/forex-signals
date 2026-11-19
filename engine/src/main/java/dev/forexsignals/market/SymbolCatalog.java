@@ -27,11 +27,16 @@ public final class SymbolCatalog {
     public record FeedName(String feed, String brokerSymbol, boolean required) {}
 
     public record SymbolDef(String code, Role role, String assetClass, String base, String quote, int digits,
-                            TradingHours hours, String cluster, boolean verified, Map<String, FeedName> feeds) {
+                            MarketHours hours, String cluster, boolean verified, Map<String, FeedName> feeds) {
         /** Smallest price increment at the default digits (the feed spec can override digits). */
         public double pointSize() { return Math.pow(10, -digits); }
 
         public Optional<FeedName> on(String feed) { return Optional.ofNullable(feeds.get(feed)); }
+
+        /** Same symbol with the broker's own trading schedule (from its spec) instead of the default profile. */
+        public SymbolDef withHours(MarketHours brokerHours) {
+            return new SymbolDef(code, role, assetClass, base, quote, digits, brokerHours, cluster, verified, feeds);
+        }
 
         /** Same symbol with the price digits the feed reports (the feed's spec wins over symbols.xml). */
         public SymbolDef withDigits(int feedDigits) {

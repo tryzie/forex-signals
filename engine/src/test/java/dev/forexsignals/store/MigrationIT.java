@@ -36,9 +36,10 @@ class MigrationIT {
                     rs.next();
                     assertThat(rs.getString(1)).isEqualTo("UTC");
                 }
-                try (ResultSet rs = st.executeQuery("SELECT commission_per_lot_side->>'XAG' IS NULL FROM cost_profile WHERE name='pepperstone_razor_ctrader'")) {
+                try (ResultSet rs = st.executeQuery("SELECT commission_per_lot_side->>'XAG', notes FROM cost_profile WHERE name='pepperstone_razor_ctrader'")) {
                     rs.next();
-                    assertThat(rs.getBoolean(1)).as("XAG commission stays unknown until verified").isTrue();
+                    assertThat(rs.getString(1)).as("XAG commission from the cTrader spec (V2)").isEqualTo("0.00");
+                    assertThat(rs.getString(2)).contains("not yet confirmed by a demo statement");
                 }
                 try (ResultSet rs = st.executeQuery("SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN " +
                         "('symbol','symbol_feed','symbol_spec','tick','candle_m1','candle','import_progress','gap_report','spread_stats'," +

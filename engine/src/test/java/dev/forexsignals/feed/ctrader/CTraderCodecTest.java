@@ -70,6 +70,9 @@ class CTraderCodecTest {
                 .isInstanceOf(ConfigException.class).hasMessageContaining("not marked as a demo");
         assertThatThrownBy(() -> CTraderAdapter.chooseDemoAccount(accounts(ProtoOAClientPermissionScope.SCOPE_VIEW, false), "999"))
                 .hasMessageContaining("not among the accounts");
+        // Empty accountNumber: never guess; list the accounts (numbers only) and stop.
+        assertThatThrownBy(() -> CTraderAdapter.chooseDemoAccount(accounts(ProtoOAClientPermissionScope.SCOPE_VIEW, false), ""))
+                .isInstanceOf(ConfigException.class).hasMessageContaining("1234567 (demo)").hasMessageContaining("Set accountNumber");
         // A response without any scope is treated as unsafe.
         ProtoOAGetAccountListByAccessTokenRes noScope = ProtoOAGetAccountListByAccessTokenRes.newBuilder().setAccessToken("t").build();
         assertThatThrownBy(() -> CTraderAdapter.chooseDemoAccount(noScope, "1234567")).isInstanceOf(ConfigException.class);
@@ -115,8 +118,11 @@ class CTraderCodecTest {
         List<long[]> bidsOldestFirst = List.of(bids.get(2), bids.get(1), bids.get(0));
         List<long[]> asks = List.of(new long[]{t0 - 3500, 108_750}, new long[]{t0 - 500, 108_748});
         List<Tick> ticks = CTraderAdapter.mergeBidAsk("EURUSD", bidsOldestFirst, asks, new AtomicLong());
-        assertThat(ticks).extracting(Tick::bid).containsExactly(1.08743, 1.08738, 1.0874);
-        assertThat(ticks).extracting(Tick::ask).containsExactly(1.0875, 1.0875, 1.08748);
+        // One tick per bid OR ask change, like live spot events. The ask at -3500 ms comes before any bid: skipped.
+        // The ask-only change at -500 ms carries the unchanged bid (this is what makes cTrader bars open there).
+        assertThat(ticks).extracting(t -> t.ts().toEpochMilli() - t0).containsExactly(-3000L, -1000L, -500L, 0L);
+        assertThat(ticks).extracting(Tick::bid).containsExactly(1.08743, 1.08738, 1.08738, 1.0874);
+        assertThat(ticks).extracting(Tick::ask).containsExactly(1.0875, 1.0875, 1.08748, 1.08748);
     }
 
     @Test

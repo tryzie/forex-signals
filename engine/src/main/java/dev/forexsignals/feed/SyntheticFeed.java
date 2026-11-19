@@ -45,7 +45,7 @@ public final class SyntheticFeed implements FeedAdapter {
         for (SymbolDef d : wanted) {
             double contract = switch (d.code()) { case "XAUUSD" -> 100.0; case "XAGUSD" -> 5000.0; default -> 100_000.0; };
             out.put(d.code(), new SymbolSpec(d.code(), name(), d.code(), null, d.digits(), d.digits() - 1, contract, 0.01, 0.01, 100.0,
-                    Map.of(), null, null, Map.of("profile", d.hours().name()), Map.of("synthetic", true)));
+                    Map.of(), null, null, Map.of("profile", String.valueOf(d.hours())), Map.of("synthetic", true)));
         }
         return out;
     }

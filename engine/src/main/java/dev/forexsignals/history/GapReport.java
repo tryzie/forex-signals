@@ -2,6 +2,7 @@ package dev.forexsignals.history;
 
 import dev.forexsignals.market.SessionCalendar;
 import dev.forexsignals.market.SymbolCatalog.SymbolDef;
+import dev.forexsignals.market.MarketHours;
 import dev.forexsignals.market.TradingHours;
 import dev.forexsignals.store.MarketStore;
 
@@ -36,7 +37,7 @@ public final class GapReport {
     private GapReport() {}
 
     /** Pure classification of the gap between two consecutive bar open times (prev, next). */
-    public static Gap classify(Instant prevOpen, Instant nextOpen, TradingHours hours) {
+    public static Gap classify(Instant prevOpen, Instant nextOpen, MarketHours hours) {
         Instant start = prevOpen.plusSeconds(60);
         long minutes = Duration.between(start, nextOpen).toMinutes();
         long open = 0, openOutsideRollover = 0;

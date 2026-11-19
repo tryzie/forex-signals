@@ -13,10 +13,10 @@ import java.util.Set;
  */
 public record CliArgs(Mode mode, Map<String, String> options) {
 
-    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK }
+    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK, CHATID }
 
     public static final String USAGE = """
-            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck> [options]
+            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid> [options]
 
               common    --config=<path>      conf.xml (default ~/.forexsignals/conf.xml, or $FOREXSIGNALS_CONF)
                         --feed=<deriv|ctrader|synthetic>   default: <feed primary> in conf.xml
@@ -29,6 +29,8 @@ public record CliArgs(Mode mode, Map<String, String> options) {
                         resumable M1 history import (month chunks, paced)
               gapreport [--report=<dir>] [--list-min=5]
               spotcheck [--per-tf=20] [--seed=1] [--report=<dir>]
+              chatid    [--wait=PT2M]        print the Telegram chat ID of whoever pressed Start on the bot
+                        (token read from the encrypted conf.xml, never shown; no database needed)
 
             Unknown options are rejected (exit code 2).
             """;
@@ -36,7 +38,7 @@ public record CliArgs(Mode mode, Map<String, String> options) {
     /** Every option name the code reads (any mode). Anything else is a usage error. */
     public static final Set<String> KNOWN_OPTIONS = Set.of(
             "mode", "config", "feed", "symbols", "duration", "seed", "from", "to", "source",
-            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf");
+            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf", "wait");
 
     public static final class UsageException extends Exception {
         public UsageException(String message) { super(message); }

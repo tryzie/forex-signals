@@ -16,7 +16,7 @@ import java.time.ZonedDateTime;
  *         short gaps are expected.
  *  METAL  Sunday 18:00 to Friday 17:00 NY, with a daily break 17:00-18:00 NY.
  */
-public enum TradingHours {
+public enum TradingHours implements MarketHours {
     FX(LocalTime.of(17, 0), false),
     METAL(LocalTime.of(18, 0), true);
 
@@ -34,6 +34,7 @@ public enum TradingHours {
     }
 
     /** True when the market is scheduled to be open at this instant. */
+    @Override
     public boolean isOpen(Instant t) {
         ZonedDateTime ny = t.atZone(NEW_YORK);
         DayOfWeek d = ny.getDayOfWeek();
@@ -46,6 +47,7 @@ public enum TradingHours {
     }
 
     /** True inside the daily rollover window, where short quote gaps are normal. */
+    @Override
     public boolean inRolloverWindow(Instant t) {
         LocalTime lt = t.atZone(NEW_YORK).toLocalTime();
         return !lt.isBefore(ROLLOVER_START) && lt.isBefore(ROLLOVER_END);

@@ -276,7 +276,12 @@ public final class AppConfig {
     public record CTrader(String host, int port, String accountNumber, Secret clientId, Secret clientSecret,
                           Secret accessToken, Secret refreshToken) {
         public boolean credentialsPresent() {
-            return clientId.isSet() && clientSecret.isSet() && accessToken.isSet() && !accountNumber.isBlank();
+            return tokensPresent() && !accountNumber.isBlank();
+        }
+
+        /** App credentials and token present (the account number may still be missing). */
+        public boolean tokensPresent() {
+            return clientId.isSet() && clientSecret.isSet() && accessToken.isSet();
         }
     }
 

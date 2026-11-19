@@ -140,6 +140,16 @@ public final class CTraderAdapter implements FeedAdapter, HistorySource {
             throw new ConfigException("cTrader token scope is " + (res.hasPermissionScope() ? res.getPermissionScope() : "unknown")
                     + ". This app only runs with a read-only token: issue a new one with the 'accounts' scope (docs/SETUP-ACCOUNTS.md §3).");
         }
+        if (accountNumber == null || accountNumber.isBlank()) {
+            // Never guess the account: list what the token can see (account numbers are not secrets) and stop.
+            StringBuilder sb = new StringBuilder();
+            for (ProtoOACtidTraderAccount a : res.getCtidTraderAccountList()) {
+                sb.append(sb.isEmpty() ? "" : ", ").append(a.getTraderLogin()).append(a.hasIsLive() && !a.getIsLive() ? " (demo" : " (LIVE")
+                        .append(a.hasBrokerTitleShort() ? ", " + a.getBrokerTitleShort() : "").append(')');
+            }
+            throw new ConfigException("cTrader accountNumber is empty in conf.xml. Accounts this read-only token can see: "
+                    + (sb.isEmpty() ? "none" : sb) + ". Set accountNumber to the DEMO one.");
+        }
         for (ProtoOACtidTraderAccount a : res.getCtidTraderAccountList()) {
             if (String.valueOf(a.getTraderLogin()).equals(accountNumber)) {
                 if (!a.hasIsLive() || a.getIsLive()) {
@@ -452,15 +462,25 @@ public final class CTraderAdapter implements FeedAdapter, HistorySource {
         return out;
     }
 
-    /** Emits one tick per bid change, carrying the latest ask at or before it (candles are built on bid). */
+    /**
+     * Rebuilds the quote stream from the two one-sided histories exactly like live spot events: one tick at
+     * every bid OR ask change, carrying the unchanged side. (cTrader records each side only when it changes.
+     * An ask-only change at the start of a bar makes the bar open at the carried bid, which is how cTrader's
+     * own trendbars are built: measured 2026-11-19, see PLAN §14.3.) Ticks before the first bid are skipped.
+     */
     static List<Tick> mergeBidAsk(String code, List<long[]> bids, List<long[]> asks, AtomicLong seq) {
-        List<Tick> out = new ArrayList<>(bids.size());
-        int j = 0;
-        long ask = 0;
-        for (long[] b : bids) {
-            while (j < asks.size() && asks.get(j)[0] <= b[0]) ask = asks.get(j++)[1];
-            Instant ts = Instant.ofEpochMilli(b[0]);
-            out.add(new Tick(FEED, code, ts, b[1] / PRICE_SCALE, ask == 0 ? Double.NaN : ask / PRICE_SCALE, ts, seq.incrementAndGet()));
+        List<Tick> out = new ArrayList<>(bids.size() + asks.size());
+        int i = 0, j = 0;
+        long bid = 0, ask = 0;
+        while (i < bids.size() || j < asks.size()) {
+            long tb = i < bids.size() ? bids.get(i)[0] : Long.MAX_VALUE, ta = j < asks.size() ? asks.get(j)[0] : Long.MAX_VALUE;
+            long ts = Math.min(tb, ta);
+            // Apply every change at this millisecond (both sides may change at once), then emit one tick.
+            while (i < bids.size() && bids.get(i)[0] == ts) bid = bids.get(i++)[1];
+            while (j < asks.size() && asks.get(j)[0] == ts) ask = asks.get(j++)[1];
+            if (bid == 0) continue;
+            Instant t = Instant.ofEpochMilli(ts);
+            out.add(new Tick(FEED, code, t, bid / PRICE_SCALE, ask == 0 ? Double.NaN : ask / PRICE_SCALE, t, seq.incrementAndGet()));
         }
         return out;
     }

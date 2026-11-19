@@ -79,7 +79,7 @@ final class Modes {
             case "deriv" -> new DerivAdapter(cfg.deriv().endpoint(), cfg.deriv().appId());
             case "ctrader" -> {
                 AppConfig.CTrader ct = cfg.ctrader();
-                if (!ct.credentialsPresent()) {
+                if (!ct.tokensPresent()) {
                     throw new ConfigException("cTrader feed is '1b: pending': clientId, clientSecret, accessToken and accountNumber "
                             + "are not all set in " + cfg.file() + " (see docs/SETUP-ACCOUNTS.md §3).");
                 }
@@ -370,8 +370,12 @@ final class Modes {
         int listMin = Integer.parseInt(args.opt("list-min").orElse("5"));
         Instant runAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         List<GapReport.SymbolResult> results = new ArrayList<>();
-        for (SymbolDef d : ctx.catalog().onFeed(feed, args.opt("symbols"))) {
-            if (ctx.store().countM1(feed, d.code()) == 0) continue;
+        for (SymbolDef d0 : ctx.catalog().onFeed(feed, args.opt("symbols"))) {
+            if (ctx.store().countM1(feed, d0.code()) == 0) continue;
+            // Use the broker's own schedule from the stored spec when there is one (cTrader); else the default profile.
+            SymbolDef d = ctx.store().latestTradingHours(feed, d0.code()).flatMap(dev.forexsignals.market.TradingSchedule::fromSpec)
+                    .map(d0::withHours).orElse(d0);
+            log.info("gap report {} {}: hours from {}", feed, d.code(), d.hours() instanceof dev.forexsignals.market.TradingSchedule ? "broker spec" : "default profile " + d.hours());
             results.add(GapReport.run(ctx.store(), feed, d, runAt, listMin));
         }
         Path out = GapReport.write(reportDir(args), feed, runAt, results, listMin);

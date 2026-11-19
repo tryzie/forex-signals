@@ -43,6 +43,11 @@ public final class Main {
             Path confFile = args.opt("config").map(Path::of).orElse(AppConfig.defaultConfFile());
             AppConfig cfg = AppConfig.load(confFile, ConfigCrypto.loadOrCreateKey(ConfigCrypto.defaultKeyFile()));
             log.info("forex-signals starting: mode={} config={}", args.mode(), confFile);
+            if (args.mode() == CliArgs.Mode.CHATID) {
+                // Telegram setup helper: no database, prints to stdout.
+                return dev.forexsignals.delivery.TelegramChatId.run(cfg,
+                        java.time.Duration.parse(args.opt("wait").orElse("PT2M")), System.out);
+            }
             try (Modes.Context ctx = Modes.context(cfg)) {
                 return switch (args.mode()) {
                     case LIVE -> Modes.live(args, ctx);
@@ -50,6 +55,7 @@ public final class Main {
                     case IMPORT -> Modes.importHistory(args, ctx);
                     case GAPREPORT -> Modes.gapReport(args, ctx);
                     case SPOTCHECK -> Modes.spotCheck(args, ctx);
+                    case CHATID -> throw new IllegalStateException("handled above");
                 };
             }
         } catch (ConfigException e) {

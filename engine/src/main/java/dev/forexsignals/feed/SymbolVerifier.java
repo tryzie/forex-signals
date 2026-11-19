@@ -44,8 +44,10 @@ public final class SymbolVerifier {
                 }
                 continue;
             }
-            // The feed's digits win over symbols.xml (point size for comparisons and spread statistics).
-            available.add(spec.digits() != null ? d.withDigits(spec.digits()) : d);
+            // The feed's digits and trading schedule win over symbols.xml (point size; stale detection; gap report).
+            SymbolDef effective = spec.digits() != null ? d.withDigits(spec.digits()) : d;
+            effective = dev.forexsignals.market.TradingSchedule.fromSpec(spec.tradingHours()).map(effective::withHours).orElse(effective);
+            available.add(effective);
             if (store == null) continue;
             store.upsertSymbolFeed(feed, d.code(), spec.brokerSymbol(), spec.brokerSymbolId(), fn.required(), true, now);
             String hash = spec.hash();
