@@ -482,6 +482,28 @@ No `build.gradle.kts`, `settings.gradle.kts` or `gradle/` will be created.
 
 ADRs (`docs/adr/`): 0001 feed choice, 0002 Java 25, 0003 read-only OAuth scope, 0004 candle alignment, 0005 M1 synthetic-tick fidelity, 0006 config encryption, **0007 Maven over Gradle**, **0008 Percona image for compose and Testcontainers**.
 
+### 14.2 Phase 1 changes against this plan (2026-11-19)
+
+Found while building and measuring. None of these changes a trading rule.
+- **Deriv history is quote (mid) only.** Live Deriv ticks have bid, ask and quote, but `ticks_history`
+  returns only the quote. Deriv candles are therefore built on the **quote** (per-feed `PriceBasis`), so
+  they can be checked against Deriv's own candles. cTrader stays on **bid**. `tick` has a `quote` column
+  and a nullable `bid`.
+- **Deriv limits (measured):** at most 1000 items per answer (the newest before `end`), whatever `count`
+  says; M1 depth about one year (older requests silently return recent bars); FX week Monday 00:00 UTC to
+  about Friday 20:55 UTC; USDSEK not listed; RateLimit answers seen at 3 req/s, so the importer uses 2 req/s.
+  The 3-year import needs cTrader (1b).
+- **Schema:** `symbol` is feed-independent and a new `symbol_feed` table holds the per-feed broker name,
+  id and availability (a symbol exists on several feeds). `feed_event.kind` gained `SYMBOL_MISSING` and
+  `GAP_UNEXPECTED`. `run.kind` gained `IMPORT`.
+- **Incomplete bars:** bars that began before a (re)connect, a disconnect, or the start of a replay or
+  import window are not stored (ADR 0004). Backfilling missed minutes from cTrader trendbars is 1b.
+- **Trading hours:** default profiles (FX; METAL with a 17:00-18:00 NY daily break) until the feed's own
+  schedule is read (cTrader spec in 1b; Deriv `trading_times` not used yet). Holidays are flagged in the
+  gap report as `LONG_OUTAGE_OR_HOLIDAY` for a manual check.
+- **Mac protoc check:** skipped (the repo lives only on the VM).
+- **cTrader:** "1b: pending" until Spotware approves the app. The adapter is coded and unit-tested offline.
+
 ## 15. Transcript-to-strategy workflow (later, plan only)
 
 ```

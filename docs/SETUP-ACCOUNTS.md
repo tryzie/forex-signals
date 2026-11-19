@@ -65,10 +65,23 @@ The app encrypts them on its first start.
 8. On first start the app replaces `TYPE="CLEARTEXT"` with `TYPE="ENCRYPTED"` and an encrypted value.
    It only sends to, and only listens to, that one chat ID.
 
-## 5. Deriv (fallback, needed later)
-Market data uses the public endpoint, so no account is needed for Phase 1. If we ever
-need authenticated calls, sign up at **developers.deriv.com** for the new API. Old app IDs
-don't work with the new API.
+## 5. Deriv (fallback, works now: nothing to set up)
+Market data comes from the public endpoint `wss://api.derivws.com/trading/v1/options/ws/public`, which
+needs **no account, no token and no App ID** (checked 2026-11-19: symbols, ticks and history all work
+without one). Leave `<deriv appId="">` empty.
+
+Optional: if you want your own App ID (e.g. for higher limits later):
+1. Log in or sign up at **https://developers.deriv.com**.
+2. Dashboard → register a new application.
+3. Copy the generated **App ID** into `~/.forexsignals/conf.xml` as `<deriv appId="...">`.
+   It is not a secret. Legacy App IDs (such as 1089) do not work with the new API.
+
+What Deriv can and cannot do for us (measured 2026-11-19):
+- Live ticks carry bid, ask and a mid "quote". History (ticks and candles) is **quote only**, so Deriv
+  candles are built on the quote, not the bid. Deriv data is tagged `deriv` and never mixed with cTrader.
+- M1 history reaches back about **one year**, not three. The 3-year import needs cTrader.
+- Deriv's FX week runs Monday 00:00 UTC to about Friday 20:55 UTC, not the broker week.
+- USDSEK is not listed on Deriv.
 
 ## 6. VM access (do this now)
 1. On the Mac, run `ssh-copy-id parallels@10.211.55.5`. It uses your existing `~/.ssh/id_ed25519.pub`.
