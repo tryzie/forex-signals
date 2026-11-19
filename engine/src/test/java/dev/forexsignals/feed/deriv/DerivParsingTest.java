@@ -55,6 +55,15 @@ class DerivParsingTest {
     }
 
     @Test
+    void requestWindowsStayBelowTheMeasuredThousandItemCap() {
+        DerivAdapter d = new DerivAdapter("wss://unused", "");
+        assertThat(DerivAdapter.MAX_COUNT).isEqualTo(1000);
+        assertThat(d.maxSpan(Timeframe.M1).toMinutes()).isLessThan(1000);
+        assertThat(d.maxSpan(Timeframe.M5).toMinutes() / 5).isLessThan(1000);
+        assertThat(d.maxSpan(null).toSeconds()).as("ticks: ~1/s").isLessThan(1000);
+    }
+
+    @Test
     void activeSymbolsMapToCatalogSymbolsAndMissingOnesAreAbsent() throws Exception {
         var cat = SymbolCatalog.load(Optional.empty());
         JsonNode resp = json("""

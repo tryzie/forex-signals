@@ -482,7 +482,8 @@ public final class MarketStore {
 
     private static int sum(int[] counts) {
         int n = 0;
-        for (int c : counts) n += Math.max(c, 0); // SUCCESS_NO_INFO (-2) counts as 0
+        // reWriteBatchedInserts reports rewritten statements as SUCCESS_NO_INFO (-2): each counts as one row.
+        for (int c : counts) n += c >= 0 ? c : (c == java.sql.Statement.SUCCESS_NO_INFO ? 1 : 0);
         return n;
     }
 }

@@ -32,16 +32,19 @@ import java.util.concurrent.atomic.AtomicLong;
  * feed are therefore built on the QUOTE basis. Deriv prices are Deriv's own quotes: results are tagged
  * "deriv" and never pooled with cTrader.
  *
- * Measured on 2026-11-19: M1 candles go back about one year. Beyond that Deriv silently returns recent
- * bars instead of an error, so every history answer is filtered to the requested window and anything
- * outside is dropped (and reported).
+ * Measured on 2026-11-19:
+ *  - M1 candles go back about one year. Beyond that Deriv silently returns recent bars instead of an
+ *    error, so every history answer is filtered to the requested window and anything outside is dropped.
+ *  - One answer holds at most 1000 candles or ticks (the newest 1000 before "end"), whatever "count" says.
+ *    Requests are sized below that, and an answer that reaches the cap is treated as possibly truncated:
+ *    the window is split in half and both halves are fetched. A truncated page is never accepted.
  */
 public final class DerivAdapter implements FeedAdapter, HistorySource {
 
     private static final Logger log = LoggerFactory.getLogger(DerivAdapter.class);
     public static final String FEED = "deriv";
-    /** One request covers at most this many candles or ticks (Deriv's maximum count is 5000). */
-    static final int MAX_COUNT = 5000;
+    /** Deriv returns at most this many candles or ticks per answer (measured; "count" above it is ignored). */
+    static final int MAX_COUNT = 1000;
 
     private final String endpoint, appId;
     private final AtomicBoolean running = new AtomicBoolean();
@@ -60,9 +63,12 @@ public final class DerivAdapter implements FeedAdapter, HistorySource {
 
     @Override public PriceBasis priceBasis() { return PriceBasis.QUOTE; }
 
-    /** Deriv allows about 220 calls a minute: stay at 3 per second. */
+    /**
+     * Deriv's published limit is about 220 calls a minute, but a 2026-11-19 import at 3/s still got
+     * "RateLimit" answers every few minutes (absorbed by the backoff). 2 per second avoids most of them.
+     */
     @Override
-    public double maxRequestsPerSecond() { return 3.0; }
+    public double maxRequestsPerSecond() { return 2.0; }
 
     private synchronized DerivConnection historyConnection() throws Exception {
         if (conn == null || !conn.isOpen()) {
@@ -165,8 +171,8 @@ public final class DerivAdapter implements FeedAdapter, HistorySource {
 
     @Override
     public Duration maxSpan(Timeframe tf) {
-        // Candles: <= 5000 per request. Ticks: one hour (about 1 tick per second at most -> < 5000).
-        return tf == null ? Duration.ofHours(1) : tf.duration().multipliedBy(MAX_COUNT - 10);
+        // Candles: at most 990 bars per window. Ticks: 15 minutes (about 1 tick per second -> ~900).
+        return tf == null ? Duration.ofMinutes(15) : tf.duration().multipliedBy(MAX_COUNT - 10);
     }
 
     private JsonNode history(Map<String, Object> req) throws Exception {
@@ -201,6 +207,14 @@ public final class DerivAdapter implements FeedAdapter, HistorySource {
         req.put("end", to.getEpochSecond() - 1);
         req.put("count", MAX_COUNT);
         List<Candle> all = parseCandles(history(req), symbol.code(), tf);
+        if (all.size() >= MAX_COUNT) {
+            // Possibly truncated (Deriv keeps only the newest MAX_COUNT): split and fetch both halves.
+            Instant mid = Timeframe.M1.bucketStart(from.plus(Duration.between(from, to).dividedBy(2)));
+            if (!mid.isAfter(from) || !mid.isBefore(to)) throw new IllegalStateException("cannot split window " + from + " .. " + to);
+            List<Candle> out = new ArrayList<>(fetchCandles(symbol, tf, from, mid));
+            out.addAll(fetchCandles(symbol, tf, mid, to));
+            return out;
+        }
         List<Candle> in = all.stream().filter(c -> !c.openTime().isBefore(from) && c.openTime().isBefore(to)).toList();
         if (!all.isEmpty() && in.isEmpty()) {
             log.warn("deriv {} {}: all {} returned bars are outside {} .. {} (beyond Deriv's history depth?)", symbol.code(), tf, all.size(), from, to);
@@ -228,7 +242,7 @@ public final class DerivAdapter implements FeedAdapter, HistorySource {
         req.put("count", MAX_COUNT);
         List<Tick> ticks = parseHistoryTicks(history(req), symbol.code(), seq);
         if (ticks.size() >= MAX_COUNT) {
-            // Possibly truncated: split the window and fetch both halves (rare: > 5000 ticks per hour).
+            // Possibly truncated (only the newest MAX_COUNT are returned): split the window and fetch both halves.
             Instant mid = from.plus(Duration.between(from, to).dividedBy(2));
             List<Tick> out = new ArrayList<>(fetchTicks(symbol, from, mid));
             out.addAll(fetchTicks(symbol, mid, to));
