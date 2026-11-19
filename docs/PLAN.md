@@ -464,15 +464,15 @@ forex-signals/
 ├── pom.xml                      # packaging=pom; <properties> = every version; dependencyManagement,
 │                                # pluginManagement, enforcer rules; <modules>engine</modules>
 ├── mvnw  mvnw.cmd  .mvn/wrapper/maven-wrapper.properties   # pinned 3.9.16 (committed)
-├── Makefile                     # up | down | test (./mvnw -B verify) | jar (./mvnw -B -DskipTests package) | run-replay
+├── Makefile                     # up | down | test (./mvnw -B verify) | unit | jar (./mvnw -B -DskipTests package) | run-live | run-replay
 ├── docker-compose.yml  .env.example          # Percona 18.7.1-1, volume, healthcheck
 ├── CLAUDE.md  README.md  .gitignore  conf.example.xml
 ├── config/symbols.xml
 ├── docs/  PLAN.md  SETUP-ACCOUNTS.md  adr/0001…0008
 ├── engine/
 │   ├── pom.xml                  # protobuf (sourceDirectories=src/main/proto), surefire, failsafe, shade
-│   ├── src/main/proto/ctrader/  # vendored Spotware .proto (Apache-2.0) + LICENSE note
-│   ├── src/main/java/dev/forexsignals/{app,config,feed,feed/ctrader,feed/deriv,feed/replay,
+│   ├── src/main/proto/ctrader/  # vendored Spotware .proto (MIT; order requests removed) + README
+│   ├── src/main/java/dev/forexsignals/{app,config,engine,feed,feed/ctrader,feed/deriv,
 │   │                                    market,history,store,time}/…   (same classes as before)
 │   ├── src/main/resources/db/migration/V1__init.sql  logback.xml
 │   └── src/test/java/…   *Test (Surefire)   *IT (Failsafe; needs-feed tagged where applicable)

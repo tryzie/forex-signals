@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Command line: {@code java -jar forex-signals.jar --mode=<mode> [--key=value ...]}.
@@ -18,14 +19,24 @@ public record CliArgs(Mode mode, Map<String, String> options) {
             usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck> [options]
 
               common    --config=<path>      conf.xml (default ~/.forexsignals/conf.xml, or $FOREXSIGNALS_CONF)
-              live      --feed=<deriv|ctrader|synthetic>      stream ticks, record spreads, build candles
-              replay    --feed=<f> --from=<ISO> --to=<ISO> [--source=db|feed] [--symbols=A,B]
-                        [--compare-m5] [--report=<dir>]   rebuild candles from recorded ticks
-              import    --feed=<f> [--symbols=A,B] [--years=3] [--from=<ISO>] [--to=<ISO>]
+                        --feed=<deriv|ctrader|synthetic>   default: <feed primary> in conf.xml
+                        --symbols=A,B        limit to these catalogue codes
+              live      [--duration=PT10M] [--seed=1]
+                        stream ticks, record spreads, build candles
+              replay    --from=<ISO> --to=<ISO> [--source=db|feed] [--compare-m5] [--write-candles]
+                        [--report=<dir>]     rebuild candles from recorded ticks
+              import    [--years=3] [--from=<ISO>] [--to=<ISO>]
                         resumable M1 history import (month chunks, paced)
-              gapreport --feed=<f> [--symbols=A,B] [--report=<dir>]
-              spotcheck --feed=<f> [--symbols=A,B] [--per-tf=20] [--seed=1] [--report=<dir>]
+              gapreport [--report=<dir>] [--list-min=5]
+              spotcheck [--per-tf=20] [--seed=1] [--report=<dir>]
+
+            Unknown options are rejected (exit code 2).
             """;
+
+    /** Every option name the code reads (any mode). Anything else is a usage error. */
+    public static final Set<String> KNOWN_OPTIONS = Set.of(
+            "mode", "config", "feed", "symbols", "duration", "seed", "from", "to", "source",
+            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf");
 
     public static final class UsageException extends Exception {
         public UsageException(String message) { super(message); }
@@ -40,6 +51,7 @@ public record CliArgs(Mode mode, Map<String, String> options) {
             String key = eq < 0 ? body : body.substring(0, eq);
             String value = eq < 0 ? "true" : body.substring(eq + 1);
             if (key.isBlank()) throw new UsageException("empty option name: " + a);
+            if (!KNOWN_OPTIONS.contains(key)) throw new UsageException("unknown option: --" + key);
             if (options.put(key, value) != null) throw new UsageException("option given twice: --" + key);
         }
         String modeText = options.remove("mode");

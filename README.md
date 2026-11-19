@@ -41,7 +41,7 @@ nano ~/.forexsignals/conf.xml
 - `<database><password TYPE="CLEARTEXT">`: the same value as `PG_PASSWORD` in `.env`.
 - On first start, every non-empty `TYPE="CLEARTEXT"` value is encrypted (AES-256-GCM) and the file is
   rewritten with `TYPE="ENCRYPTED"`. The key is created at `~/.forexsignals/master.key` (chmod 600).
-  The app refuses to start if the key file is readable by anyone else. If you lose the key, re-enter
+  The app refuses to start unless `master.key` has mode 600 (or 400) and is owned by the user running the app. If you lose the key, re-enter
   the secrets as CLEARTEXT.
 - Override paths with `--config=<path>` (or `$FOREXSIGNALS_CONF`) and `$FOREXSIGNALS_KEY_FILE`.
 - The symbol catalogue (roles, broker names, required/optional per feed) is `config/symbols.xml`,
@@ -64,7 +64,10 @@ java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck> [opt
 Every option is `--key=value` (a bare `--flag` means `true`). Each mode loads conf.xml, connects to
 Postgres and applies Flyway migrations (bundled in the jar), then runs.
 Exit codes: `0` ok, `1` failure, `2` usage error, `3` replay check found unexplained mismatches.
-Logs are JSON lines on stdout (UTC timestamps). Reports go to `data/reports/` (gitignored) unless `--report=` is given.
+Unknown options (for example `--compare_m5`) are rejected with exit code `2`.
+Logs are JSON lines on stdout (UTC timestamps). Reports go to `data/reports/` unless `--report=` is given.
+`data/reports` is relative to the working directory: run the jar from the repo root so it lands in the
+gitignored `data/` folder.
 
 | Option | Modes | Meaning |
 |---|---|---|
@@ -73,7 +76,7 @@ Logs are JSON lines on stdout (UTC timestamps). Reports go to `data/reports/` (g
 | `--symbols=A,B` | all | limit to these catalogue codes (default: every symbol mapped on the feed) |
 | `--duration=PT10M` | live | stop after an ISO-8601 duration (default: run until stopped) |
 | `--seed=<n>` | live (synthetic), spotcheck | random seed (default 1) |
-| `--from=<ISO>` `--to=<ISO>` | replay (required), import | UTC instants, e.g. `2026-11-09T00:00:00Z` |
+| `--from=<ISO>` `--to=<ISO>` | replay (required), import | UTC instants, e.g. `2026-11-09T00:00:00Z`. Import: `--to` defaults to today 00:00 UTC, `--from` to `--to` minus `--years`; `--from` overrides `--years` |
 | `--source=<db\|feed>` | replay | `db`: ticks recorded by live mode (default). `feed`: the feed's tick history |
 | `--compare-m5` | replay | compare built M5 candles with the feed's own M5 candles; writes `m5check-*.md` |
 | `--write-candles` | replay | also store the rebuilt candles |
@@ -109,6 +112,9 @@ Logs are JSON lines on stdout (UTC timestamps). Reports go to `data/reports/` (g
 | `make jar` | `./mvnw -B -DskipTests package` |
 | `make run-live` | live mode (`FEED=deriv` by default) |
 | `make run-replay FROM=... TO=...` | replay with `--compare-m5` |
+
+`CONF=<path>` sets the config for `run-live` and `run-replay` (default `~/.forexsignals/conf.xml`).
+`FEED=<deriv|ctrader|synthetic>` applies to `run-live` and `run-replay` (default `deriv`).
 
 Network feed tests are tagged `needs-feed` and are reported as skipped unless enabled:
 `FOREXSIGNALS_FEED_IT=1 make test` (Deriv) or cTrader credentials in `~/.forexsignals/conf.xml`.
