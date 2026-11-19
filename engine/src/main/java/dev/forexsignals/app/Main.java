@@ -55,6 +55,7 @@ public final class Main {
                     case IMPORT -> Modes.importHistory(args, ctx);
                     case GAPREPORT -> Modes.gapReport(args, ctx);
                     case SPOTCHECK -> Modes.spotCheck(args, ctx);
+                    case SPREADSAMPLE -> Modes.spreadSample(args, ctx);
                     case CHATID -> throw new IllegalStateException("handled above");
                 };
             }

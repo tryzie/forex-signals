@@ -27,6 +27,11 @@ public final class SpreadStats {
     public record Stat(String bucket, double median, double p95, long samples) {}
 
     public static Map<String, Stat> compute(MarketStore store, String feed, SymbolDef sym, Instant from, Instant to) {
+        return compute(store, feed, sym, from, to, "LIVE", null);
+    }
+
+    /** source LIVE (recorded live ticks) or TICK_SAMPLE (a sampled tick-history week, label = quarter). */
+    public static Map<String, Stat> compute(MarketStore store, String feed, SymbolDef sym, Instant from, Instant to, String source, String label) {
         double point = sym.pointSize();
         Map<SessionCalendar.Bucket, TreeMap<Long, Long>> hist = new EnumMap<>(SessionCalendar.Bucket.class);
         store.streamTicks(feed, List.of(sym.code()), from, to, t -> {
@@ -39,7 +44,7 @@ public final class SpreadStats {
             long n = h.values().stream().mapToLong(Long::longValue).sum();
             Stat s = new Stat(bucket.name(), quantile(h, n, 0.5) * point, quantile(h, n, 0.95) * point, n);
             out.put(bucket.name(), s);
-            store.upsertSpreadStat(feed, sym.code(), bucket.name(), from, to, s.median(), s.p95(), n);
+            store.upsertSpreadStat(feed, sym.code(), bucket.name(), from, to, s.median(), s.p95(), n, source, label);
         });
         log.info("spread stats {} {} {} .. {}: {}", feed, sym.code(), from, to, out);
         return out;

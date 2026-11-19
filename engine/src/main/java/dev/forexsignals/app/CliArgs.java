@@ -13,10 +13,10 @@ import java.util.Set;
  */
 public record CliArgs(Mode mode, Map<String, String> options) {
 
-    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK, CHATID }
+    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK, CHATID, SPREADSAMPLE }
 
     public static final String USAGE = """
-            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid> [options]
+            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid|spreadsample> [options]
 
               common    --config=<path>      conf.xml (default ~/.forexsignals/conf.xml, or $FOREXSIGNALS_CONF)
                         --feed=<deriv|ctrader|synthetic>   default: <feed primary> in conf.xml
@@ -29,6 +29,7 @@ public record CliArgs(Mode mode, Map<String, String> options) {
                         resumable M1 history import (month chunks, paced)
               gapreport [--report=<dir>] [--list-min=5]
               spotcheck [--per-tf=20] [--seed=1] [--report=<dir>]
+              spreadsample [--symbols=A,B]   one cTrader tick-history week per quarter -> spread model (resumable)
               chatid    [--wait=PT2M]        print the Telegram chat ID of whoever pressed Start on the bot
                         (token read from the encrypted conf.xml, never shown; no database needed)
 

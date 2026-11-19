@@ -466,11 +466,17 @@ public final class MarketStore {
         }
     }
 
-    public void upsertSpreadStat(String feed, String symbol, String bucket, Instant from, Instant to, double median, double p95, long samples) {
-        String sql = "INSERT INTO spread_stats (feed, symbol, session_bucket, window_start, window_end, median, p95, samples) "
-                + "VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (feed, symbol, session_bucket, window_start) DO UPDATE SET "
-                + "window_end = EXCLUDED.window_end, median = EXCLUDED.median, p95 = EXCLUDED.p95, samples = EXCLUDED.samples, computed_at = now()";
-        exec(sql, feed, symbol, bucket, utc(from), utc(to), median, p95, samples);
+    public void upsertSpreadStat(String feed, String symbol, String bucket, Instant from, Instant to, double median, double p95, long samples,
+                                 String source, String label) {
+        String sql = "INSERT INTO spread_stats (feed, symbol, session_bucket, window_start, window_end, median, p95, samples, source, label) "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (feed, symbol, session_bucket, window_start) DO UPDATE SET "
+                + "window_end = EXCLUDED.window_end, median = EXCLUDED.median, p95 = EXCLUDED.p95, samples = EXCLUDED.samples, "
+                + "source = EXCLUDED.source, label = EXCLUDED.label, computed_at = now()";
+        exec(sql, feed, symbol, bucket, utc(from), utc(to), median, p95, samples, source, label);
+    }
+
+    public long countTicks(String feed, String symbol, Instant from, Instant to) {
+        return scalarLong("SELECT count(*) FROM tick WHERE feed = ? AND symbol = ? AND ts >= ? AND ts < ?", feed, symbol, utc(from), utc(to));
     }
 
     // ------------------------------------------------------------------------------------ helpers

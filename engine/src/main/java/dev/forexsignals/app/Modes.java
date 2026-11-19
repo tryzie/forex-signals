@@ -383,6 +383,22 @@ final class Modes {
         return 0;
     }
 
+    /** Phase 2 spread model: sample one tick-history week per quarter for the signal symbols (default). */
+    static int spreadSample(CliArgs args, Context ctx) throws Exception {
+        String feed = feedName(args, ctx.cfg());
+        try (HistorySource hist = history(feed, ctx.cfg(), args)) {
+            List<SymbolDef> symbols = ctx.catalog().onFeed(feed, args.opt("symbols")).stream()
+                    .filter(d -> args.opt("symbols").isPresent() || d.role() == SymbolCatalog.Role.SIGNAL).toList();
+            if (hist instanceof FeedAdapter fa) symbols = SymbolVerifier.verify(feed, symbols, fa.loadSymbols(symbols), ctx.store(), Instant.now());
+            hist.usePacer(Pacer.realTime(Math.min(ctx.cfg().importSettings().maxReqPerSec(), hist.maxRequestsPerSecond())));
+            var weeks = dev.forexsignals.history.SpreadSampler.weeks(2024, Instant.now());
+            log.info("spread sample: {} week(s) {} for {}", weeks.size(), weeks.stream().map(w -> w.label() + "@" + w.from()).toList(),
+                    symbols.stream().map(SymbolDef::code).toList());
+            dev.forexsignals.history.SpreadSampler.run(hist, ctx.store(), symbols, weeks);
+        }
+        return 0;
+    }
+
     static int spotCheck(CliArgs args, Context ctx) throws Exception {
         String feed = feedName(args, ctx.cfg());
         int per = Integer.parseInt(args.opt("per-tf").orElse("20"));
