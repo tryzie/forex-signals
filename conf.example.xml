@@ -16,7 +16,8 @@
     <password TYPE="CLEARTEXT"></password>
   </database>
 
-  <!-- Which adapter live mode uses when no feed option is given on the command line: deriv | ctrader | synthetic -->
+  <!-- Default feed for every mode (live, replay, import, gapreport, spotcheck) when the feed option is not
+       given on the command line: deriv | ctrader | synthetic -->
   <feed primary="deriv"/>
 
   <!-- Deriv (fallback feed). Market data uses the public endpoint and needs no token.
@@ -47,10 +48,11 @@
   <candles graceSec="2"/>
 
   <!-- Feed health (Phase 1: log + feed_event only; Telegram in Phase 4). A symbol is stale after this many
-       seconds without a tick while its market is open. -->
+       seconds without a tick while its market is open. checkEverySec: not used yet (live checks every 500 ms). -->
   <health staleSecFx="60" staleSecMetal="120" checkEverySec="5"/>
 
-  <!-- Live tick recording (spread calibration starts as soon as a feed connects). -->
+  <!-- Live tick recording (spread calibration starts as soon as a feed connects).
+       tickRetentionDays: planned, not enforced yet (Phase 6). -->
   <recording batchSize="500" flushMs="1000" tickRetentionDays="90"/>
 
   <!-- M1 history import: month chunks, paced at maxReqPerSec (cTrader limit is 5/s for history). -->

@@ -25,7 +25,7 @@ class CliArgsTest {
         assertThatThrownBy(() -> CliArgs.parse(new String[]{"--mode=trade"})).hasMessageContaining("invalid --mode");
         assertThatThrownBy(() -> CliArgs.parse(new String[]{})).hasMessageContaining("missing --mode");
         assertThatThrownBy(() -> CliArgs.parse(new String[]{"--mode=live", "x"})).hasMessageContaining("unexpected");
-        assertThatThrownBy(() -> CliArgs.parse(new String[]{"--mode=live", "--a=1", "--a=2"})).hasMessageContaining("twice");
+        assertThatThrownBy(() -> CliArgs.parse(new String[]{"--mode=live", "--seed=1", "--seed=2"})).hasMessageContaining("twice");
     }
 
     @Test
@@ -34,5 +34,29 @@ class CliArgsTest {
         int code = Main.run(new String[]{"--mode=bogus"}, new PrintStream(err, true, StandardCharsets.UTF_8));
         assertThat(code).isEqualTo(2);
         assertThat(err.toString(StandardCharsets.UTF_8)).contains("invalid --mode: bogus").contains("usage:");
+    }
+
+    @Test
+    void rejectsUnknownOptionWithExitCode2() {
+        assertThatThrownBy(() -> CliArgs.parse(new String[]{"--mode=replay", "--compare_m5"}))
+                .isInstanceOf(CliArgs.UsageException.class)
+                .hasMessage("unknown option: --compare_m5");
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        int code = Main.run(new String[]{"--mode=replay", "--compare_m5"}, new PrintStream(err, true, StandardCharsets.UTF_8));
+        assertThat(code).isEqualTo(2);
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("unknown option: --compare_m5").contains("usage:");
+    }
+
+    @Test
+    void acceptsEveryKnownOption() throws Exception {
+        CliArgs a = CliArgs.parse(new String[]{"--mode=replay", "--config=/tmp/c.xml", "--feed=deriv",
+                "--symbols=EURUSD,GBPUSD", "--duration=PT10M", "--seed=7", "--from=2026-11-09T00:00:00Z",
+                "--to=2026-11-10T00:00:00Z", "--source=db", "--compare-m5", "--write-candles", "--years=3",
+                "--report=data/reports", "--list-min=5", "--per-tf=20"});
+        assertThat(a.options()).hasSize(CliArgs.KNOWN_OPTIONS.size() - 1); // "mode" is removed
+        for (String key : CliArgs.KNOWN_OPTIONS) {
+            if (!key.equals("mode")) assertThat(a.options()).containsKey(key);
+            assertThat(CliArgs.USAGE).contains("--" + key);
+        }
     }
 }
