@@ -442,7 +442,7 @@ Notes:
 - **Netty is dropped.** cTrader is a TLS socket carrying length-prefixed Protobuf frames, so a plain `SSLSocket` on a virtual thread fits the linear style and needs no extra dependency. Deriv uses the JDK's built-in `java.net.http.WebSocket`.
 - **JUnit 5.14.x** rather than JUnit 6, because it's the most widely supported by tooling. Moving to 6 is a later, separate change.
 
-- **cTrader feed: "1b: pending"** until Spotware approves the Open API app (decided 2026-11-19). It doesn't block any other Phase 1 criterion. Until then Deriv, `SyntheticFeed` and recorded/replayed data stand in, and cTrader ITs are tagged `needs-feed`.
+- **cTrader feed: 1b closed (2026-11-19).** The Open API app was approved and the feed runs on the Pepperstone demo account 5376549 with a read-only token. Results in §14.3. cTrader ITs stay tagged `needs-feed`.
 
 **Criterion 1 (toolchain), revised:**
 1. On the VM (Ubuntu 26.04, aarch64): Temurin JDK 25, Docker Engine + compose plugin, and Node 22 are installed. There's no system Maven; only `./mvnw` is used.
@@ -502,7 +502,83 @@ Found while building and measuring. None of these changes a trading rule.
   schedule is read (cTrader spec in 1b; Deriv `trading_times` not used yet). Holidays are flagged in the
   gap report as `LONG_OUTAGE_OR_HOLIDAY` for a manual check.
 - **Mac protoc check:** skipped (the repo lives only on the VM).
-- **cTrader:** "1b: pending" until Spotware approves the app. The adapter is coded and unit-tested offline.
+- **cTrader:** 1b closed on 2026-11-19 (see §14.3).
+
+### 14.3 Phase 1b: cTrader results (2026-11-19)
+
+Measured on the Pepperstone cTrader **demo** account 5376549. The token is read-only (scope `SCOPE_VIEW` confirmed).
+
+**1. Status: 1b CLOSED.** Replay of one week, 2026-11-08T00:00Z to 2026-11-14T00:00Z, for EURUSD, GBPUSD,
+USDJPY, AUDUSD, XAUUSD and XAGUSD, with `--source=feed --compare-m5`:
+- 4,591,389 ticks, 8,513 M5 bars.
+- Built M5 == cTrader trendbars on every bar: 0 diffs, 0 unexplained, 0 late ticks.
+- M5 bars per symbol: EURUSD 1439, GBPUSD 1436, USDJPY 1439, AUDUSD 1439, XAUUSD 1380, XAGUSD 1380.
+
+**2. Fixed before the final run.** The first run had 1,021 unexplained mismatches, almost all in the OPEN.
+The close never differed. H/L differed only where the built bar was inside the reference bar.
+- Cause: cTrader tick history records each side only when it changes. The replay merged the two sides
+  but emitted a tick only on a bid change. cTrader trendbars (like live spot events) also take an
+  ask-only change: if the first quote event in a bar is an ask-only change, the bar opens at the
+  carried (unchanged) bid.
+- Fix: the replay emits a tick on every bid OR ask change, carrying the other side. This matches live spots.
+- Checked on 575/575 EURUSD and 551/551 XAUUSD opens before the full re-run.
+- The candle builder itself was not changed.
+
+**3. Symbol specs.** All 10 symbols exist on cTrader with the same names as `config/symbols.xml`, USDX included.
+
+| Symbol | Digits | Pip pos | Lot size | Min / max lots | Step | Commission |
+|---|---|---|---|---|---|---|
+| EURUSD | 5 | 4 | 100000 | 0.01 / 100 | 0.01 | USD_PER_LOT 3.00 |
+| GBPUSD | 5 | 4 | 100000 | 0.01 / 100 | 0.01 | USD_PER_LOT 3.00 |
+| USDJPY | 3 | 2 | 100000 | 0.01 / 100 | 0.01 | USD_PER_LOT 3.00 |
+| AUDUSD | 5 | 4 | 100000 | 0.01 / 100 | 0.01 | USD_PER_LOT 3.00 |
+| XAUUSD | 2 | 1 | 100 (oz) | 0.01 / 50 | 0.01 | USD_PER_LOT 3.50 |
+| XAGUSD | 3 | 2 | 5000 (oz) | 0.01 / 100 | 0.01 | USD_PER_MILLION_USD, rate 0 |
+| USDX | 3 | 2 | 100 (contracts) | 1 / 100 | 1 | USD_PER_MILLION_USD, rate 0 |
+| USDCAD | 5 | 4 | 100000 | 0.01 / 100 | 0.01 | USD_PER_LOT 3.00 |
+| USDSEK | 5 | 4 | 100000 | 0.01 / 100 | 0.01 | USD_PER_LOT 3.00 |
+| USDCHF | 5 | 4 | 100000 | 0.01 / 100 | 0.01 | USD_PER_LOT 3.00 |
+
+- Commission is per side, per lot. FX 3.00 and XAU 3.50 confirm the configured values.
+- XAG 0.00 is recorded from the spec (V2 migration, `conf.example.xml`). It still has to be confirmed by a
+  0.01-lot demo statement. If they differ, the statement wins.
+
+**4. Trading schedules** (America/New_York, from the spec):
+- FX: Sunday 17:01 to Friday 16:55, daily break 16:59-17:01.
+- Metals: daily break 16:59-18:01.
+- USDX: opens Sunday 18:00, daily close 16:59-20:00 (3 hours), Friday close 16:55.
+- The broker schedule (`TradingSchedule`) now replaces the default profiles for stale detection and the
+  gap report. Holidays are still not read.
+
+**5. USDX.** USDX is available on cTrader, so the synthetic USDX_SYN is no longer needed as the primary
+source. Its six inputs (EURUSD, USDJPY, GBPUSD, USDCAD, USDSEK, USDCHF) are all available too, so USDX_SYN
+stays as a fallback and cross-check. USDX stays CONTEXT with `verified=false` until the owner reviews its
+spec: minimum 1 lot, 3-hour daily close, spread about 0.050 (50 points).
+
+**6. Spreads seen live**, 16:38-16:42 UTC (London/New York overlap), median / p95 in points:
+
+| EURUSD | GBPUSD | USDJPY | AUDUSD | XAUUSD | XAGUSD | USDX | USDCAD | USDSEK | USDCHF |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 / 1 | 2 / 4 | 2 / 3 | 1 / 1 | 11 / 12 | 30 / 32 | 50 / 54 | 1 / 3 | 495 / 517 | 1 / 2 |
+
+This is a 4-minute sample, not the calibration week.
+
+**7. Other fixes during 1b:**
+- The spec hash is now canonical (key-sorted JSON). `Map.of` iteration order changed with each JVM run,
+  which raised a false `SPEC_CHANGED` alert on every restart.
+- An empty `accountNumber` now lists the token's accounts by number and stops. It never guesses.
+- cTrader spot events carry no timestamp, so the tick timestamp is the receive time. The tick-lag metric
+  means nothing on cTrader.
+
+**8. Disk.**
+- M1 is about 155 B/row; derived candles about 176 B/row, indexes included.
+- 3-year import of 10 symbols: about 11M M1 rows, about 1.7 GB, plus about 0.55 GB derived.
+- Live tick recording: about 190 B/tick at about 1,300 ticks/min for 10 symbols = about 360 MB/day, or
+  about 32 GB for the 90-day retention. Retention is not enforced yet (Phase 6).
+- The VM has 44 GB free. That is fine for the import. Before long live recording, enlarge the VM disk
+  (100 GB or more) or bring tick retention forward.
+
+**9. 3-year import.** Import results: see the end of Phase 1b report (filled in after the run).
 
 ## 15. Transcript-to-strategy workflow (later, plan only)
 

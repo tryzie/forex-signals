@@ -4,8 +4,9 @@ Real-time forex **signal** platform for demo-account testing. It tells you when 
 to exit. **It never places, modifies or closes orders** (see `CLAUDE.md`). Plan: `docs/PLAN.md`.
 
 Status: **Phase 1 (foundation)**. Market data, candles, recording, history import and checks are in
-place. There are no strategies or signals yet. cTrader is "1b: pending" until Spotware approves the
-Open API app; Deriv and a synthetic feed stand in until then.
+place. There are no strategies or signals yet. cTrader 1b is closed: it runs on the Pepperstone demo
+account 5376549 (read-only), and built M5 candles equal cTrader trendbars over one week with 0 mismatches
+(`docs/PLAN.md` §14.3). Deriv and a synthetic feed remain as fallbacks.
 
 ## Requirements (development VM)
 
@@ -52,18 +53,19 @@ nano ~/.forexsignals/conf.xml
 | Feed | What it needs | How to get it |
 |---|---|---|
 | **Deriv** (fallback, works now) | **Nothing** for market data: it uses the public endpoint `wss://api.derivws.com/trading/v1/options/ws/public` with no token. `appId` is optional. | If you want an App ID anyway: log in at developers.deriv.com → Dashboard → register an application → copy the new App ID into `<deriv appId="...">`. Legacy App IDs (e.g. 1089) do not work with the new API. An App ID is not a secret. |
-| **cTrader** (primary, 1b pending) | `clientId`, `clientSecret` (from your approved Open API app), `accessToken` + `refreshToken` with the **`accounts`** (read-only) scope, and `accountNumber` (your demo account number). | `docs/SETUP-ACCOUNTS.md` §3. Never choose the `trading` scope: the adapter refuses trading-scope tokens and live accounts. |
-| Telegram (Phase 4) | `botToken`, `chatId` | `docs/SETUP-ACCOUNTS.md` §4 |
+| **cTrader** (primary, live on the demo account) | `clientId`, `clientSecret` (from your approved Open API app), `accessToken` + `refreshToken` with the **`accounts`** (read-only) scope, and `accountNumber` (your demo account number). | `docs/SETUP-ACCOUNTS.md` §3. Never choose the `trading` scope: the adapter refuses trading-scope tokens and live accounts. |
+| Telegram (Phase 4) | `botToken`, `chatId` | `docs/SETUP-ACCOUNTS.md` §4. Use `--mode=chatid` to find the chat id. |
 
 ## The jar: `engine/target/forex-signals.jar`
 
 ```
-java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck> [options]
+java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid> [options]
 ```
 
 Every option is `--key=value` (a bare `--flag` means `true`). Each mode loads conf.xml, connects to
-Postgres and applies Flyway migrations (bundled in the jar), then runs.
-Exit codes: `0` ok, `1` failure, `2` usage error, `3` replay check found unexplained mismatches.
+Postgres and applies Flyway migrations (bundled in the jar), then runs. `chatid` is the exception: it
+needs no database.
+Exit codes (unchanged): `0` ok, `1` failure, `2` usage error, `3` replay check found unexplained mismatches.
 Unknown options (for example `--compare_m5`) are rejected with exit code `2`.
 Logs are JSON lines on stdout (UTC timestamps). Reports go to `data/reports/` unless `--report=` is given.
 `data/reports` is relative to the working directory: run the jar from the repo root so it lands in the
@@ -84,6 +86,7 @@ gitignored `data/` folder.
 | `--report=<dir>` | replay, gapreport, spotcheck | report directory (default `data/reports`) |
 | `--list-min=<n>` | gapreport | list unexpected gaps with at least n open-market minutes (default 5) |
 | `--per-tf=<n>` | spotcheck | random bars per timeframe per symbol (default 20) |
+| `--wait=PT2M` | chatid | how long to wait for someone to press Start (ISO-8601, default PT2M) |
 
 ### Modes
 
@@ -101,6 +104,10 @@ gitignored `data/` folder.
   rollover) are summarised; unexpected ones are listed with UTC, EAT and broker server time.
 - **spotcheck**: 20 random M15/H1/H4 bars per symbol (seeded) as a Markdown + CSV table with UTC, EAT and
   server time, for you to compare with the cTrader chart.
+- **chatid**: `--mode=chatid [--wait=PT2M]`. Reads the Telegram bot token from the encrypted conf.xml
+  (it is never shown and is scrubbed from error messages), calls `getMe` and `getUpdates`, and prints the
+  chat id(s) of whoever pressed Start in the bot. No database needed. Put your private chat id into
+  `<telegram chatId="...">`.
 
 ### Makefile
 
