@@ -80,6 +80,14 @@ class ReplayIT {
             p.finish();
             assertThat(n).isEqualTo(week.size());
 
+            // Spread calibration from the recorded ticks: every session bucket gets an exact median and p95.
+            var stats = dev.forexsignals.history.SpreadStats.compute(store, "synthetic", symbols.getFirst(), FROM, TO);
+            assertThat(stats).containsKeys("ASIA", "LONDON", "OVERLAP", "NEW_YORK", "ROLLOVER");
+            // The synthetic feed widens spreads x4 in 16:58-17:05 NY, about half of the 16:55-17:10 bucket: it shows in the p95.
+            assertThat(stats.get("ROLLOVER").p95()).as("rollover tail is wider").isGreaterThan(stats.get("LONDON").p95() * 1.5);
+            assertThat(stats.get("LONDON").p95()).isGreaterThanOrEqualTo(stats.get("LONDON").median());
+            assertThat(store.scalarLong("SELECT count(*) FROM spread_stats WHERE symbol = 'EURUSD'")).isEqualTo(5);
+
             for (SymbolDef d : symbols) {
                 List<Candle> a = live.get(Timeframe.M5).stream().filter(c -> c.symbol().equals(d.code())).toList();
                 List<Candle> b = replay.get(Timeframe.M5).stream().filter(c -> c.symbol().equals(d.code())).toList();
