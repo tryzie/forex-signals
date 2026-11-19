@@ -225,9 +225,10 @@ final class Modes {
                     Duration span = hist.maxSpan(null);
                     for (Instant a = from; a.isBefore(to); a = a.plus(span)) {
                         Instant b = a.plus(span).isBefore(to) ? a.plus(span) : to;
-                        pacer.acquire();
-                        input.addAll(hist.fetchTicks(d, a, b));
+                        final Instant fa = a, fb = b;
+                        input.addAll(fetchWithRetry(pacer, ctx.cfg().importSettings(), () -> hist.fetchTicks(d, fa, fb)));
                     }
+                    log.info("replay: fetched ticks for {} ({} so far)", d.code(), input.size());
                 }
                 input.sort(Comparator.comparing(Tick::ts).thenComparing(Tick::symbol).thenComparingLong(Tick::seq));
             } else {
@@ -267,8 +268,8 @@ final class Modes {
                 Duration span = hist.maxSpan(Timeframe.M5);
                 for (Instant a = from; a.isBefore(to); a = a.plus(span)) {
                     Instant b = a.plus(span).isBefore(to) ? a.plus(span) : to;
-                    pacer.acquire();
-                    ref.addAll(hist.fetchCandles(d, Timeframe.M5, a, b));
+                    final Instant fa = a, fb = b;
+                    ref.addAll(fetchWithRetry(pacer, ctx.cfg().importSettings(), () -> hist.fetchCandles(d, Timeframe.M5, fa, fb)));
                 }
                 reports.add(TrendbarComparator.compare(feed, d.code(), "M5", from, to, builtM5.getOrDefault(d.code(), List.of()), ref, d.pointSize()));
             }
@@ -284,6 +285,24 @@ final class Modes {
             return unexplained == 0 ? 0 : 3;
         } finally {
             if (hist != null) hist.close();
+        }
+    }
+
+    /** One paced history request with the importer's retry policy (backoff with jitter on rate limits and I/O errors). */
+    static <T> List<T> fetchWithRetry(Pacer pacer, AppConfig.Import ic, java.util.concurrent.Callable<List<T>> call) throws Exception {
+        dev.forexsignals.feed.Backoff backoff = new dev.forexsignals.feed.Backoff(Duration.ofSeconds(ic.backoffMaxSec()));
+        for (int attempt = 1; ; attempt++) {
+            pacer.acquire();
+            try {
+                return call.call();
+            } catch (InterruptedException e) {
+                throw e;
+            } catch (Exception e) {
+                if (attempt >= ic.maxAttempts()) throw e;
+                Duration wait = backoff.next();
+                log.warn("history request failed (attempt {}): {}; retrying in {} ms", attempt, e.toString(), wait.toMillis());
+                Thread.sleep(wait);
+            }
         }
     }
 

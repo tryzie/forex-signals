@@ -61,7 +61,8 @@ public final class Database implements AutoCloseable {
                 .failOnMissingLocations(true)
                 .load()
                 .migrate();
-        log.info("flyway: {} migration(s) applied, schema version now {}", r.migrationsExecuted, r.targetSchemaVersion);
+        log.info("flyway: {} migration(s) applied, schema version {}", r.migrationsExecuted,
+                r.targetSchemaVersion != null ? r.targetSchemaVersion : r.initialSchemaVersion);
         return r.migrationsExecuted;
     }
 
