@@ -1,0 +1,21 @@
+# secrets
+conf.xml
+*.key
+.env
+.env.*
+# third-party / raw content
+inbox/
+data/
+*.transcript.txt
+# build
+build/
+.gradle/
+out/
+node_modules/
+dist/
+*.log
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
