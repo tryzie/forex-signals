@@ -83,9 +83,12 @@ gitignored `data/` folder.
 | `--compare-m5` | replay | compare built M5 candles with the feed's own M5 candles; writes `m5check-*.md` |
 | `--write-candles` | replay | also store the rebuilt candles |
 | `--years=<n>` | import | history depth (default `<import years>` = 3) |
-| `--report=<dir>` | replay, gapreport, spotcheck | report directory (default `data/reports`) |
+| `--report=<dir>` | replay, gapreport, spotcheck, validate | report directory (default `data/reports`) |
 | `--list-min=<n>` | gapreport | list unexpected gaps with at least n open-market minutes (default 5) |
 | `--per-tf=<n>` | spotcheck | random bars per timeframe per symbol (default 20) |
+| `--note=<text>` | freeze | note stored with the frozen parameters |
+| `--strategies=a,b` | validate | strategy names (default: the three M15 baselines) |
+| `--news=<path>` | validate | major-events CSV (default `config/news.csv`) |
 | `--wait=PT2M` | chatid | how long to wait for someone to press Start (ISO-8601, default PT2M) |
 
 ### Modes
@@ -108,6 +111,16 @@ gitignored `data/` folder.
   (it is never shown and is scrubbed from error messages), calls `getMe` and `getUpdates`, and prints the
   chat id(s) of whoever pressed Start in the bot. No database needed. Put your private chat id into
   `<telegram chatId="...">`.
+
+- **spreadsample** (Phase 2): fetches one cTrader tick-history week per quarter (the week starting the second Sunday
+  of Feb/May/Aug/Nov) for the six signal symbols, stores the ticks and writes per-session-bucket median/p95 spreads
+  (`spread_stats`, source TICK_SAMPLE). Resumable: weeks already stored are not fetched again.
+- **freeze** (Phase 2): records every strategy version's parameter hash in `frozen_params`. Run it BEFORE any
+  out-of-sample test; reports withhold out-of-sample numbers for parameters that were not frozen or changed since.
+- **validate** (Phase 2): `--strategies=ema_pullback,donchian_breakout,rsi_mean_reversion [--from --to] [--news=config/news.csv]`.
+  For each strategy: a 3-year M1 backtest with all costs, its random-entry control at the measured signal rate, a cost-stress
+  re-run (spread x1.5, slippage x2), week-block bootstrap, walk-forward and the 8-check validation gate. A baseline that fails
+  on costs gets its H1-entry variant. Writes `validation-*.html` and `.json`. No strategy is ever enabled for live signals.
 
 ### Makefile
 
