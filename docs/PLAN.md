@@ -618,6 +618,23 @@ This is a 4-minute sample, not the calibration week.
   Nothing is tuned to pass. No strategy is enabled for live signals in Phase 2.
 - The input data (news CSV, spread-sample weeks and medians) is shown to the owner before the first full backtest.
 
+**Implementation decisions taken while building Phase 2 (for owner review):**
+- **Kill switch in validation runs:** recorded (date shown in the report) but it does NOT halt the run. Halting censors a
+  strategy's sample right after its worst losing streak and biased check 8 in the strategy's favour (the random control,
+  which loses, was cut off early). Live and replay keep the account rule: the switch halts and needs a manual reset.
+  The daily loss cap stays active in validation (it resets daily and does not censor).
+- **Cost stress (check 6):** both the stressed re-run (its own trade set) and the parent's own trades re-priced at
+  stress are computed; the gate uses the worse of the two, so trades filtered out by the cost check cannot flatter it.
+- **Spread model:** a trade uses the most recent sample week that ended before it (never a later week); before the first
+  sample week (Nov 2023 to Feb 2024) the first week is used, and the report says so.
+- **M1 path:** synthetic intra-bar ticks are not real prices: a stop crossed inside the bar fills at the stop; only a
+  bar's open tick can gap through it. Stop and target inside the same M1 bar: the stop wins, flagged AMBIGUOUS_BAR.
+- **Out-of-sample withholding:** if parameters were not frozen, or changed after the freeze, every number, trade and the
+  gate verdict are restricted to the first 12 months (the report says so). Parameters were frozen on 2026-11-19 20:29 UTC.
+- **USD_NET_EXPOSURE** is implied by CURRENCY_EXPOSURE at the default limits (USD legs <= 2 per side means |net| <= 2);
+  it is tested with a tighter limit and kept for configurability.
+- **Targets** are rounded away from the reference on the price grid, so a 1.5R target is never below 1.5R.
+
 ## 15. Transcript-to-strategy workflow (later, plan only)
 
 ```
