@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Structured JSON logs to stdout (one JSON object per line). Timestamps are UTC.
+     Secrets are never logged: config values are only logged as "set"/"missing". -->
+<configuration>
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <timeZone>UTC</timeZone>
+      <includeCallerData>false</includeCallerData>
+    </encoder>
+  </appender>
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+  <logger name="org.flywaydb" level="INFO"/>
+  <logger name="org.testcontainers" level="WARN"/>
+  <logger name="tc" level="WARN"/>
+  <logger name="com.github.dockerjava" level="WARN"/>
+  <root level="${FOREXSIGNALS_LOG_LEVEL:-INFO}">
+    <appender-ref ref="JSON"/>
+  </root>
+</configuration>

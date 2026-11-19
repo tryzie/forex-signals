@@ -9,6 +9,7 @@ data/
 *.transcript.txt
 # build
 build/
+target/
 .gradle/
 out/
 node_modules/
