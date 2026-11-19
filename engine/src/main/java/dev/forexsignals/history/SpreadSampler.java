@@ -2,6 +2,7 @@ package dev.forexsignals.history;
 
 import dev.forexsignals.market.SymbolCatalog.SymbolDef;
 import dev.forexsignals.market.Tick;
+import dev.forexsignals.store.Database;
 import dev.forexsignals.store.MarketStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,9 @@ import java.util.List;
  *
  * For each week and symbol: the merged bid/ask ticks are fetched (paced), stored in the tick table (so the fill-bias
  * replay can reuse them), and per-session-bucket median/p95 spreads are written to spread_stats as TICK_SAMPLE with
- * the quarter label. A week whose ticks are already stored is not fetched again (resumable).
+ * the quarter label. Resumable: a week whose TICK_SAMPLE statistics exist is done and skipped. A week cut short (crash,
+ * connection reset) is fetched again; its ticks carry deterministic sequence numbers (their index in the week), so the
+ * re-insert is de-duplicated by the primary key. Each fetch is retried with backoff (the next request reconnects).
  */
 public final class SpreadSampler {
 
@@ -49,23 +52,41 @@ public final class SpreadSampler {
         }
     }
 
+    static List<Tick> fetchWithRetry(HistorySource source, SymbolDef d, Instant a, Instant b) throws Exception {
+        dev.forexsignals.feed.Backoff backoff = new dev.forexsignals.feed.Backoff(Duration.ofSeconds(60));
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return source.fetchTicks(d, a, b);
+            } catch (InterruptedException e) {
+                throw e;
+            } catch (Exception e) {
+                if (attempt >= 8) throw e;
+                Duration wait = backoff.next();
+                log.warn("spread sample {} {} .. {}: attempt {} failed ({}); retrying in {} ms", d.code(), a, b, attempt, e.toString(), wait.toMillis());
+                Thread.sleep(wait);
+            }
+        }
+    }
+
     public static void run(HistorySource source, MarketStore store, List<SymbolDef> symbols, List<Week> weeks) throws Exception {
         for (Week w : weeks) {
             store.db().ensurePartitions(w.from(), w.to());
             for (SymbolDef d : symbols) {
-                long have = store.countTicks(source.feed(), d.code(), w.from(), w.to());
-                if (have == 0) {
-                    long stored = 0;
-                    Duration span = source.maxSpan(null);
-                    for (Instant a = w.from(); a.isBefore(w.to()); a = a.plus(span)) {
-                        Instant b = a.plus(span).isBefore(w.to()) ? a.plus(span) : w.to();
-                        List<Tick> ticks = source.fetchTicks(d, a, b);
-                        for (int i = 0; i < ticks.size(); i += 20_000) stored += store.insertTicks(ticks.subList(i, Math.min(ticks.size(), i + 20_000)));
-                    }
-                    log.info("spread sample {} {}: {} ticks stored", w.label(), d.code(), stored);
-                } else {
-                    log.info("spread sample {} {}: {} ticks already stored, not fetched again", w.label(), d.code(), have);
+                if (store.scalarLong("SELECT count(*) FROM spread_stats WHERE feed = ? AND symbol = ? AND source = 'TICK_SAMPLE' AND window_start = ?",
+                        source.feed(), d.code(), Database.utc(w.from())) > 0) {
+                    log.info("spread sample {} {}: done earlier, skipped", w.label(), d.code());
+                    continue;
                 }
+                long stored = 0, seq = 0;
+                Duration span = source.maxSpan(null);
+                for (Instant a = w.from(); a.isBefore(w.to()); a = a.plus(span)) {
+                    Instant b = a.plus(span).isBefore(w.to()) ? a.plus(span) : w.to();
+                    List<Tick> raw = fetchWithRetry(source, d, a, b);
+                    List<Tick> ticks = new ArrayList<>(raw.size());
+                    for (Tick t : raw) ticks.add(new Tick(t.feed(), t.symbol(), t.ts(), t.bid(), t.ask(), t.quote(), t.recvTs(), seq++));
+                    for (int i = 0; i < ticks.size(); i += 20_000) stored += store.insertTicks(ticks.subList(i, Math.min(ticks.size(), i + 20_000)));
+                }
+                log.info("spread sample {} {}: {} new ticks stored", w.label(), d.code(), stored);
                 SpreadStats.compute(store, source.feed(), d, w.from(), w.to(), "TICK_SAMPLE", w.label());
             }
         }
