@@ -1,6 +1,6 @@
 # Forex Signal Platform — Plan (Phase 0)
 
-Status: **DRAFT, awaiting approval.** No application code has been written yet.
+Status: **Approved; Phase 1 in progress** (started 2026-11-19).
 Last updated: 2026-11-18. The rules are in `CLAUDE.md`. Account setup is in `docs/SETUP-ACCOUNTS.md`.
 
 ---
@@ -442,10 +442,13 @@ Notes:
 - **Netty is dropped.** cTrader is a TLS socket carrying length-prefixed Protobuf frames, so a plain `SSLSocket` on a virtual thread fits the linear style and needs no extra dependency. Deriv uses the JDK's built-in `java.net.http.WebSocket`.
 - **JUnit 5.14.x** rather than JUnit 6, because it's the most widely supported by tooling. Moving to 6 is a later, separate change.
 
+- **cTrader feed: "1b: pending"** until Spotware approves the Open API app (decided 2026-11-19). It doesn't block any other Phase 1 criterion. Until then Deriv, `SyntheticFeed` and recorded/replayed data stand in, and cTrader ITs are tagged `needs-feed`.
+
 **Criterion 1 (toolchain), revised:**
 1. On the VM (Ubuntu 26.04, aarch64): Temurin JDK 25, Docker Engine + compose plugin, and Node 22 are installed. There's no system Maven; only `./mvnw` is used.
 2. `./mvnw -v` shows Maven 3.9.16 on JDK 25. The enforcer **fails the build** on JDK ≠ 25, Maven outside [3.9.16, 4), non-converging dependency versions, duplicate dependency declarations, or plugins without pinned versions.
-3. `./mvnw -B generate-sources` resolves `protoc` 4.36.2 and generates Java from `engine/src/main/proto` on **linux-aarch_64 (VM)** and on **osx-aarch_64 (your Mac, JDK 25.0.5)**. Both runs are shown in the Phase 1 report.
+3. `./mvnw -B generate-sources` resolves `protoc` 4.36.2 and generates Java from `engine/src/main/proto` on **linux-aarch_64 (VM)**. The run is shown in the Phase 1 report.
+   - osx-aarch_64 (Mac) check: **skipped** (decided 2026-11-19). The repo lives only on the VM.
 4. `make up` starts `percona/percona-distribution-postgresql:18.7.1-1` through docker compose (arm64 image pulled), and it reports healthy.
 5. `make test` = `./mvnw -B verify`:
    - Surefire runs all unit tests, including `ReadOnlyGuardTest`, the DST/gap/late-tick tests and the config encryption tests.

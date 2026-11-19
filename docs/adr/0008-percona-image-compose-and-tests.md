@@ -24,6 +24,7 @@ have needed the official `postgres` image.
   amended with the reason.
 
 ## Consequences
-- The pulled image is about 400–600 MB on the VM. Disk is fine (48 GB free).
-- The VM currently has **2 vCPU and about 3 GB of RAM**. Postgres plus the JVM plus the Maven build plus
-  Testcontainers will be tight, so the VM should be raised to at least 4 vCPU and 8 GB.
+- The pulled image is about **1.37 GB** on the VM (corrected 2026-11-19; the earlier 400–600 MB estimate
+  was wrong). Disk is fine (45 GB free on 2026-11-19).
+- The VM was raised to **6 vCPU and about 11 GB of RAM** (checked 2026-11-19), which covers Postgres,
+  the JVM, the Maven build and Testcontainers running together.
