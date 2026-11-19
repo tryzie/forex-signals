@@ -78,7 +78,9 @@ public final class SpreadSampler {
                     continue;
                 }
                 long stored = 0, seq = 0;
-                Duration span = source.maxSpan(null);
+                // One day per fetch: cTrader resets long tick-history sessions every few minutes, and a retry then
+                // repeats only that day (a whole-week window repeated several minutes of paging per reset).
+                Duration span = Duration.ofDays(1).compareTo(source.maxSpan(null)) < 0 ? Duration.ofDays(1) : source.maxSpan(null);
                 for (Instant a = w.from(); a.isBefore(w.to()); a = a.plus(span)) {
                     Instant b = a.plus(span).isBefore(w.to()) ? a.plus(span) : w.to();
                     List<Tick> raw = fetchWithRetry(source, d, a, b);
