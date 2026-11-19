@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Template for ~/.forexsignals/conf.xml (the real file is never committed).
+
+  1. mkdir -p ~/.forexsignals && chmod 700 ~/.forexsignals
+  2. cp conf.example.xml ~/.forexsignals/conf.xml && chmod 600 ~/.forexsignals/conf.xml
+  3. Edit it on the VM. Put each secret as TYPE="CLEARTEXT". Never paste secrets into chat, docs or git.
+  4. On first start the app encrypts every non-empty CLEARTEXT value (AES-256-GCM) and rewrites the file
+     with TYPE="ENCRYPTED". The key is ~/.forexsignals/master.key (created on first run, chmod 600;
+     override the path with $FOREXSIGNALS_KEY_FILE). Lose the key = re-enter the secrets.
+  Empty CLEARTEXT values count as "not configured" and are left alone.
+-->
+<config>
+  <!-- Same values as .env for docker compose (PG_DB, PG_USER, PG_PASSWORD, PG_PORT). -->
+  <database host="localhost" port="5432" name="forex" user="forex" poolSize="8">
+    <password TYPE="CLEARTEXT"></password>
+  </database>
+
+  <!-- Which adapter live mode uses when no feed option is given on the command line: deriv | ctrader | synthetic -->
+  <feed primary="deriv"/>
+
+  <!-- Deriv (fallback feed). Market data uses the public endpoint and needs no token.
+       appId: the App ID from developers.deriv.com (Dashboard -> register application). It is not a secret,
+       but legacy App IDs do not work with the new API. Leave empty to connect without one. -->
+  <deriv endpoint="wss://api.derivws.com/trading/v1/options/ws/public" appId=""/>
+
+  <!-- cTrader Open API (primary feed, "1b: pending" until Spotware approves the app).
+       accountNumber: the demo account number shown in cTrader. The OAuth token must have the
+       read-only "accounts" scope; the adapter refuses to run with a trading-scope token. -->
+  <ctrader host="demo.ctraderapi.com" port="5035" accountNumber="">
+    <clientId TYPE="CLEARTEXT"></clientId>
+    <clientSecret TYPE="CLEARTEXT"></clientSecret>
+    <accessToken TYPE="CLEARTEXT"></accessToken>
+    <refreshToken TYPE="CLEARTEXT"></refreshToken>
+  </ctrader>
+
+  <!-- Telegram (Phase 4). The bot only sends to and listens to this one chat. -->
+  <telegram chatId="">
+    <botToken TYPE="CLEARTEXT"></botToken>
+  </telegram>
+
+  <!-- Symbol catalogue: roles, clusters, required/optional per feed. Default is the copy bundled in the jar
+       (config/symbols.xml in the repo); set file="..." to use another one. -->
+  <symbols file=""/>
+
+  <!-- Candle closing: a bar also closes when the clock passes its end + graceSec without a new tick. -->
+  <candles graceSec="2"/>
+
+  <!-- Feed health (Phase 1: log + feed_event only; Telegram in Phase 4). A symbol is stale after this many
+       seconds without a tick while its market is open. -->
+  <health staleSecFx="60" staleSecMetal="120" checkEverySec="5"/>
+
+  <!-- Live tick recording (spread calibration starts as soon as a feed connects). -->
+  <recording batchSize="500" flushMs="1000" tickRetentionDays="90"/>
+
+  <!-- M1 history import: month chunks, paced at maxReqPerSec (cTrader limit is 5/s for history). -->
+  <import years="3" maxReqPerSec="4" maxAttempts="8" backoffMaxSec="60"/>
+
+  <!-- Risk and costs are used from Phase 3. Values are the Phase 0 decisions (CLAUDE.md). -->
+  <risk startingBalance="10000" riskPct="1.0" dailyLossPct="3.0" killSwitchPct="10.0" maxOpen="3"
+        minRR="1.5" maxPerCurrencyDirection="2" maxNetUsd="2" maxCostR="0.15" entryLatencySec="10"/>
+  <costs profile="pepperstone_razor_ctrader">
+    <!-- Commission per side per lot in USD, per instrument class. XAG is unknown: must be verified
+         against the cTrader symbol spec and a 0.01-lot demo statement before Phase 3. -->
+    <commission class="FX" perSidePerLot="3.00"/>
+    <commission class="XAU" perSidePerLot="3.50"/>
+    <commission class="XAG" perSidePerLot=""/>
+    <!-- Slippage in price units, x2 outside London/NY, x3 in news windows (never beyond x3). -->
+    <slippage symbolClass="FX" price="0.00002"/>
+    <slippage symbolClass="FX_JPY" price="0.002"/>
+    <slippage symbolClass="XAU" price="0.15"/>
+    <slippage symbolClass="XAG" price="0.02"/>
+  </costs>
+</config>
