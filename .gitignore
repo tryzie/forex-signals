@@ -3,6 +3,7 @@ conf.xml
 *.key
 .env
 .env.*
+!.env.example
 # third-party / raw content
 inbox/
 data/

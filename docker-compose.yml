@@ -1,0 +1,27 @@
+# Local database for the engine (ADR 0008). Same image tag as Testcontainers (root pom percona.pg.image).
+# Values come from .env (gitignored); copy .env.example to .env and set a password first.
+services:
+  db:
+    image: ${PG_IMAGE:-percona/percona-distribution-postgresql:18.7.1-1}
+    container_name: forexsignals-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PG_DB:-forex}
+      POSTGRES_USER: ${PG_USER:-forex}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?set PG_PASSWORD in .env (see .env.example)}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      # Bound to localhost only: the database is never exposed on the VM's network.
+      - "127.0.0.1:${PG_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h 127.0.0.1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  pgdata:
