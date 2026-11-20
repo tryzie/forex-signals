@@ -90,6 +90,62 @@ profit factor and cost stress). Donchian H1 beats its control, but its own expec
 under cost stress, and 63% of its positive R comes from gold. It is also one of six variants examined: with six
 comparisons, the chance of at least one such win by luck alone is about one in four. It is a hypothesis for a new, separately pre-registered test, not a result.
 
+## Follow-up: EURUSD with cross-market confirmation (pre-registered, closed as FAIL)
+
+*Added 2026-11-20. Pre-registration: `docs/hyp/eurusd-confirmation.md`. Report: `docs/hyp/eurusd-confirmation-development-2026-11-20.md`.*
+
+**Question.** Do the M15 Donchian and EMA-pullback entries on EURUSD gain an edge if a signal is kept only when other
+markets agree with it?
+
+**The gate (fixed before any run).** A EURUSD long is kept only if USDX closed below its EMA20(H1) AND at least two of
+GBPUSD, AUDUSD and XAUUSD closed above theirs. Shorts are the mirror image. All states are read on the latest H1 bar
+that closed at least one minute before the signal, so a bar closing at the same instant can never decide. A missing bar
+counts as not agreeing. The gate is a hard filter: stops, targets and sizing are unchanged. Parameters were frozen before
+the run. The data was split into development (2023-11-19 to 2025-11-19) and holdout (the last 12 months). Every interval
+test was judged on Bonferroni-adjusted 95% intervals, since two confirmed variants were tested.
+
+| Variant (EURUSD, M15) | Trades | Net R per trade | Gross R | Bonferroni 95% CI (net) | Verdict |
+|---|---|---|---|---|---|
+| Donchian, base | 998 | -0.157 | -0.060 | -0.229 to -0.089 | comparison only |
+| Donchian, confirmed | 736 | -0.156 | -0.066 | -0.233 to -0.082 | **FAIL** |
+| EMA pullback, base | 1,307 | -0.201 | -0.098 | -0.286 to -0.119 | comparison only |
+| EMA pullback, confirmed | 1,051 | -0.198 | -0.095 | -0.290 to -0.104 | **FAIL** |
+
+Both confirmed variants have far more than 200 trades, so they are real FAILs, not INCONCLUSIVE results. They also
+fail drawdown, profit factor, walk-forward, cost stress and the plain random control.
+
+**The filter removed trades no worse than the ones it kept.** Matched on signal time and direction:
+
+| Base | Trades kept | Kept mean R | Trades removed | Removed mean R |
+|---|---|---|---|---|
+| Donchian | 700 | -0.157 | 298 | -0.157 |
+| EMA pullback | 968 | -0.211 | 339 | -0.173 |
+
+The confirmed variants beat their bases by +0.000R and +0.004R per trade (test a), with intervals centred on zero.
+
+**The entries do worse than random entries passed through the same gate.** The confirmed random control fires at
+random times, at the base's rate and in a random direction, and is then passed through the same gate. Confirmed entries
+minus that control (test b): Donchian -0.080R, EMA -0.090R. With the gate in place, the entry rules add nothing over
+chance, which repeats the Phase 2 result.
+
+> **Caveat: the dollar leg was not independent of EURUSD.** The broker USDX passed its pre-registered verification, but
+> it is the ICE dollar-index formula (correlation 0.998 with our synthetic copy). Its H1 returns correlate **-0.967** with
+> EURUSD, and by construction it is about **58% euro**. The synthetic index was excluded from the gate for exactly this
+> reason, but the broker's index has the same property. So "USDX down" largely restated "EURUSD up", and half of the
+> gate partly confirmed EURUSD with itself. Even with that built-in agreement, the gate added nothing. A truly independent
+> dollar measure (for example a basket without EUR) was not tested.
+
+**Conclusion.** Cross-market confirmation did not give these entries an edge. Stage 1 failed, so under the
+pre-registration the holdout cannot change the verdict. **The holdout was deliberately not run.** Those 12 months stay
+unused as a holdout for the confirmation gate in a future, separately pre-registered test. They are not fresh for the
+base entry rules, which Phase 2 saw.
+
+**Lesson for framing single-symbol tests.** The pre-registration expected about 625 base trades in development. The
+bases actually made 998 and 1,307, because in Phase 2 EURUSD signals competed with five other symbols for the
+max-3-open-signals and currency-exposure caps. On its own, EURUSD hits those caps far less often. Future single-symbol
+tests should estimate their trade count (and power) from a single-symbol run of the base, not from its share of a
+multi-symbol run.
+
 ## What the rigour caught along the way
 
 Several defects were found by the tests and reviews before any result was accepted, each of which would have biased the

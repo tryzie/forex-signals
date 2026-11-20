@@ -1,7 +1,8 @@
 # Pre-registration: EURUSD entries with cross-market confirmation
 
-- Status: **APPROVED 2026-11-20 (owner). Rules frozen as written below. Parameter hashes are recorded in §11 before the
-  first run.** Nothing had been built or run for this hypothesis when it was approved.
+- Status: **CLOSED 2026-11-20: FAIL at Stage 1 (development). The holdout was deliberately NOT run (§12).**
+  Approved 2026-11-20 (owner); rules frozen as written below; parameter hashes recorded in §11 before the first run.
+  Nothing had been built or run for this hypothesis when it was approved.
 - Written: 2026-11-20, before any test of the confirmation filter.
 - Branch: `research/eurusd-confirmation`. `main` is untouched.
 - Once approved, this document is frozen. Any change after approval (definition, parameter, threshold, data split) makes
@@ -202,3 +203,28 @@ USDX verification (§10.1): clean on all four criteria, 2026-11-20 (`docs/hyp/us
 
 Run order: development (`--stage=development`), report to the owner, stop. Holdout (`--stage=holdout
 --confirm-holdout-once=true`) only after the owner has seen the development result; the database refuses a second one.
+
+## 12. Closure (2026-11-20, owner decision)
+
+**Verdict: FAIL at Stage 1.** Both confirmed variants failed the development stage (report:
+`docs/hyp/eurusd-confirmation-development-2026-11-20.md`): eurusd_donchian_conf 736 trades, -0.156R per trade;
+eurusd_ema_conf 1,051 trades, -0.198R. Test (a) +0.000R and +0.004R (CIs centred on zero); test (b) -0.080R and -0.090R.
+Under §8 a PASS needs both stages, so the final verdict was fixed by Stage 1 and the holdout could not change it.
+
+**The holdout (2025-11-19 to 2026-11-19) was deliberately not consumed.** No hypothesis code has loaded data from it
+and no `HOLDOUT` row exists in `hypothesis_run`. Why: running it could not change this verdict, and leaving it unused
+keeps those 12 months available as an untouched holdout for the confirmation gate in a future, separately pre-registered
+test. Caveat for any such future use: the base entry rules (Donchian, EMA pullback) were tested on all three years in
+Phase 2, and the H1 diagnostic saw the whole period, so this window is unseen only for tests whose new component was not
+part of Phase 2.
+
+**Disclosed after the run (does not change the verdict):**
+- The broker USDX passed verification (§10.1) but tracks the ICE formula almost exactly (corr 0.998 with USDX_SYN) and
+  correlates -0.967 with EURUSD on H1 returns: by construction it is about 58% euro. The reason O1 excluded USDX_SYN
+  therefore applies to the broker USDX as well: the dollar leg of the gate partly confirmed EURUSD with itself. The gate
+  still failed.
+- §8's power estimate (about 625 base trades in development) was low: the bases made 998 (Donchian) and 1,307 (EMA). Run
+  on EURUSD alone, its signals no longer compete with five other symbols for the max-3-open-signals and currency-exposure
+  caps. Future single-symbol tests should estimate trade counts from a single-symbol run of the base, not from the base's
+  share of a multi-symbol run.
+
