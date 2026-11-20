@@ -102,6 +102,7 @@ public final class BacktestReport {
         m.put("eligibleBars", o.eligibleBars());
         m.put("warmupBlocked", o.warmupBlocked());
         m.put("rejectionsByReason", o.rejections());
+        m.put("rejectionsBySymbol", o.rejectionsBySymbol());
         m.put("killSwitchTrippedAt", o.killSwitchAt() == null ? null : o.killSwitchAt().toString());
         m.put("ambiguousBars", o.ambiguous());
         Map<String, Long> states = new TreeMap<>();
@@ -208,6 +209,7 @@ public final class BacktestReport {
                     .append(r.parent().proposals()).append(" proposals / ").append(r.parent().eligibleBars()).append(" eligible bars). Strategy minus control: ")
                     .append(f(r.vsControl().mean())).append("R, 90% CI ").append(f(r.vsControl().lo())).append(" .. ").append(f(r.vsControl().hi())).append(".</p>");
             h.append("<p>Rejections by reason (parent): ").append(esc(r.parent().rejections())).append("</p>");
+            h.append("<p>Rejections by symbol (parent): ").append(esc(r.parent().rejectionsBySymbol())).append("</p>");
             h.append("<p>Regimes: ").append(esc(r.regimeNote())).append("</p>");
             if (r.oosWithheld().isPresent()) {
                 h.append("<p class=\"INCONCLUSIVE\">Walk-forward: OUT-OF-SAMPLE NUMBERS WITHHELD: ").append(esc(r.oosWithheld().get())).append("</p>");

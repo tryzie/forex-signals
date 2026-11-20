@@ -59,7 +59,7 @@ public final class Validator {
                          SymbolCatalog catalog, RiskGate.Config risk, long seed, Duration latency) {}
 
     public record RunOutcome(String strategyId, String role, String paramsHash, List<Signal> signals, List<TradeR> trades, Metrics metrics,
-                             Map<RejectionReason, Long> rejections, long proposals, long eligibleBars, long warmupBlocked,
+                             Map<RejectionReason, Long> rejections, Map<String, Map<String, Long>> rejectionsBySymbol, long proposals, long eligibleBars, long warmupBlocked,
                              Instant killSwitchAt, long ambiguous) {}
 
     public record StrategyResult(String strategyId, String name, String version, String paramsHash, RunOutcome parent, RunOutcome control,
@@ -74,7 +74,7 @@ public final class Validator {
         CostModel costs = new CostModel(costSettings, in.specs(), in.spreads());
         RiskGate gate = new RiskGate(in.risk(), costs, in.news());
         // Validation runs: synthetic M1 path ticks; the kill switch is recorded but does not halt (see Engine.Settings).
-        Engine e = new Engine(new Engine.Settings(in.feed(), PriceBasis.BID, Duration.ofSeconds(2), in.latency(), 10_000, in.seed(), false, true),
+        Engine e = new Engine(new Engine.Settings(in.feed(), PriceBasis.BID, Duration.ofSeconds(2), in.latency(), 10_000, in.seed(), false, true, true),
                 List.of(s), in.catalog(), gate, costs, (sym, t) -> BacktestRunner.at(in.m1(), sym, t), sym -> true);
         Map<String, M1Series> data = new TreeMap<>();
         for (String sym : s.meta().symbols()) if (in.m1().containsKey(sym)) data.put(sym, in.m1().get(sym));
@@ -85,7 +85,7 @@ public final class Validator {
         long amb = e.signals().stream().filter(x -> x.flags.contains("AMBIGUOUS_BAR")).count();
         log.info("run {} {}: {} signals, {} closed trades, net {}R/trade, in {} s", role, id, e.signals().size(), trades.size(),
                 String.format("%.3f", Metrics.of(trades).expectancy()), (System.nanoTime() - t0) / 1_000_000_000);
-        return new RunOutcome(id, role, ParamsHash.of(s.meta()), e.signals(), trades, Metrics.of(trades), Engine.byReason(e.rejections(), id),
+        return new RunOutcome(id, role, ParamsHash.of(s.meta()), e.signals(), trades, Metrics.of(trades), Engine.byReason(e.rejections(), id), e.rejectionsBySymbol(),
                 e.proposals().getOrDefault(id, 0L), e.runner().evaluated(id), e.runner().warmupBlocked(id), e.killSwitchAt(), amb);
     }
 
@@ -146,7 +146,7 @@ public final class Validator {
         if (!o.signals().isEmpty() && o.signals().stream().allMatch(s -> s.signalAt.isBefore(until))) return o;
         List<Signal> sig = o.signals().stream().filter(s -> s.signalAt.isBefore(until)).toList();
         List<TradeR> tr = TradeR.of(sig);
-        return new RunOutcome(o.strategyId(), o.role(), o.paramsHash(), sig, tr, Metrics.of(tr), o.rejections(), o.proposals(), o.eligibleBars(),
+        return new RunOutcome(o.strategyId(), o.role(), o.paramsHash(), sig, tr, Metrics.of(tr), o.rejections(), o.rejectionsBySymbol(), o.proposals(), o.eligibleBars(),
                 o.warmupBlocked(), o.killSwitchAt() != null && o.killSwitchAt().isBefore(until) ? o.killSwitchAt() : null,
                 sig.stream().filter(x -> x.flags.contains("AMBIGUOUS_BAR")).count());
     }

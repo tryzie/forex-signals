@@ -90,6 +90,14 @@ class StatsTest {
     }
 
     @Test
+    void concentrationIsNotAVacuousPassWhenNothingIsPositive() {
+        List<TradeR> losing = trades(300, 40, new String[]{"EURUSD", "GBPUSD"}, i -> -0.5);
+        var r = ValidationGate.evaluate(inputs(losing, losing, true));
+        assertThat(r.checks().get(6).status()).isEqualTo(ValidationGate.Status.INCONCLUSIVE);
+        assertThat(r.checks().get(6).observed()).contains("no symbol has positive net R");
+    }
+
+    @Test
     void tooFewTradesIsInconclusiveNotPass() {
         Random rnd = new Random(4);
         List<TradeR> few = trades(120, 70, new String[]{"EURUSD", "GBPUSD"}, i -> rnd.nextDouble() < 0.5 ? 2.0 : -1.0);

@@ -53,11 +53,14 @@ public final class Engine {
      * worst losing streak and biases the statistics (most of all the random control's mean in "beats chance").
      * syntheticIntraBar: ticks inside an M1 bar (ms 1..3) are the synthetic O/H/L/C path, not real prices, so a stop
      * crossed inside the bar is filled at the stop (only a bar's open tick can gap).
+     * constantNotional: validation runs size every trade on the constant starting balance and measure the daily loss cap
+     * against it (each trading day starts at the notional). Compounding a losing strategy toward zero would otherwise make
+     * later trades fail SIZE_BELOW_MIN and the daily cap, censoring the sample just like a halting kill switch.
      */
     public record Settings(String feed, PriceBasis basis, Duration candleGrace, Duration latency, double startingBalance, long seed,
-                           boolean killSwitchHalts, boolean syntheticIntraBar) {
+                           boolean killSwitchHalts, boolean syntheticIntraBar, boolean constantNotional) {
         public Settings(String feed, PriceBasis basis, Duration candleGrace, Duration latency, double startingBalance, long seed) {
-            this(feed, basis, candleGrace, latency, startingBalance, seed, true, false);
+            this(feed, basis, candleGrace, latency, startingBalance, seed, true, false, false);
         }
     }
 
@@ -77,6 +80,7 @@ public final class Engine {
     private final List<Candle> closedThisStep = new ArrayList<>();
     private final Map<String, Tick> lastTick = new HashMap<>();
     private final Map<String, Long> rejections = new LinkedHashMap<>();
+    private final Map<String, Map<String, Long>> rejectionsBySymbol = new TreeMap<>();
     private final Map<String, Long> proposalsByStrategy = new LinkedHashMap<>();
     private double peak, dayStartEquity;
     private LocalDate tradingDay;
@@ -196,6 +200,7 @@ public final class Engine {
         RiskGate.Decision dec = gate.evaluate(c, book);
         if (!dec.isApproved()) {
             rejections.merge(id + "|" + dec.firstFailure(), 1L, Long::sum);
+            rejectionsBySymbol.computeIfAbsent(p.symbol(), k -> new TreeMap<>()).merge(dec.firstFailure().name(), 1L, Long::sum);
             return;
         }
         tracker.register(dec.approved(), p.strategy().meta().name(), p.strategy().meta().version(), paramsHash.get(id), p.proposal(), stop, target);
@@ -204,8 +209,10 @@ public final class Engine {
     // ------------------------------------------------------------------------------------ book
 
     private final RiskGate.Book book = new RiskGate.Book() {
-        @Override public double equity() { return Engine.this.equity(); }
-        @Override public double dayStartEquity() { return dayStartEquity; }
+        @Override public double equity() {
+            return settings.constantNotional() ? settings.startingBalance() + (Engine.this.equity() - dayStartEquity) : Engine.this.equity();
+        }
+        @Override public double dayStartEquity() { return settings.constantNotional() ? settings.startingBalance() : dayStartEquity; }
         @Override public boolean killSwitchTripped() { return killSwitchAt != null && settings.killSwitchHalts(); }
         @Override public List<RiskGate.Exposure> open() {
             List<RiskGate.Exposure> out = new ArrayList<>();
@@ -257,6 +264,9 @@ public final class Engine {
     }
 
     public Map<String, Long> rejections() { return rejections; }
+
+    /** symbol -> first-failure reason -> count (all strategies of this engine). */
+    public Map<String, Map<String, Long>> rejectionsBySymbol() { return rejectionsBySymbol; }
 
     public Map<String, Long> proposals() { return proposalsByStrategy; }
 
