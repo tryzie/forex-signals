@@ -1,6 +1,7 @@
 # Pre-registration: EURUSD entries with cross-market confirmation
 
-- Status: **DRAFT, awaiting owner approval. Nothing has been built or run for this hypothesis.**
+- Status: **APPROVED 2026-11-20 (owner). Rules frozen as written below. Parameter hashes are recorded in §11 before the
+  first run.** Nothing had been built or run for this hypothesis when it was approved.
 - Written: 2026-11-20, before any test of the confirmation filter.
 - Branch: `research/eurusd-confirmation`. `main` is untouched.
 - Once approved, this document is frozen. Any change after approval (definition, parameter, threshold, data split) makes
@@ -143,14 +144,46 @@ will be reported as such.
 - Freeze: the four variants' parameter hashes are stored with `--mode=freeze` and checked against this document before
   the first run. The holdout run is a separate, later command.
 
-## 10. Decisions for the owner before this document is frozen
+## 10. Owner decisions (approved 2026-11-20)
 
-- **O1. USDX source.** PLAN §7.4 allows the broker's USDX only after it is verified (`verified="false"` today: contract
-  100, min 1 lot, digits 3, daily close 16:59-20:00 New York). Options: (i) verify broker USDX now and use it, reporting
-  the synthetic USDX_SYN as a cross-check; or (ii) use USDX_SYN (ICE formula from EURUSD, USDJPY, GBPUSD, USDCAD, USDSEK,
-  USDCHF). Note that EURUSD is about 58% of USDX_SYN, so with (ii) the "independent" dollar confirmation partly measures
-  EURUSD itself. Recommendation: (i).
-- **O2. Definition of "up/down" for the peers.** This draft uses close vs EMA20(H1) on the reference bar, the same rule as
-  for USDX. The alternative, the reference bar's own direction (close vs open), is noisier. Recommendation: EMA20 as drafted.
-- **O3. Entry timeframe.** This draft keeps M15, the specification fixed before any result. H1 entries were only run as a
-  diagnostic, and choosing H1 now would be informed by having seen that diagnostic. Recommendation: M15.
+- **O1. USDX source: the broker's USDX, after verification (§10.1).** The synthetic USDX_SYN is NEVER a gate input (it is
+  about 58% EURUSD and would partly confirm EURUSD with itself). It appears only as a descriptive cross-check in the
+  report. If the broker USDX cannot be verified clean, nothing is run: the owner is told first, and the synthetic is not
+  substituted.
+- **O2. Peer up/down: close vs EMA20(H1) on the reference bar**, the same rule as USDX.
+- **O3. Entry timeframe: M15**, the pre-committed default (H1 would be informed by the H1 diagnostic).
+
+### 10.1 USDX verification criteria (fixed before any USDX check is computed)
+
+The broker USDX (`USDX` on the Pepperstone cTrader demo) is "verified clean" only if all hold over 2023-11-19 to
+2026-11-19:
+
+- **V1 spec:** the stored cTrader spec matches what was reviewed (digits 3, lot size 100, min volume 1, volume step 1,
+  schedule Sun 18:00 to Fri 16:55 New York with a daily close 16:59-20:00), and no SPEC_CHANGED event exists for USDX.
+- **V2 coverage:** during London or New York session hours on weekdays, an H1 USDX bar exists for >= 98% of the hours in
+  which an H1 EURUSD bar exists.
+- **V3 consistency:** H1 log returns of USDX correlate >= 0.90 with H1 log returns of the ICE formula USDX_SYN
+  (computed from bid closes of the six inputs), and <= -0.80 with EURUSD.
+- **V4 no artificial jumps:** no H1 bar where USDX moves more than 0.30% while USDX_SYN moves less than a third of that
+  (such jumps would be contract rolls or data errors, which flip "close vs EMA20" for reasons unrelated to the dollar).
+  If such jumps exist, USDX is NOT verified clean and the owner is told before any run.
+
+The result of this check is reported to the owner. Only if all four pass is `verified="true"` set for USDX.
+
+## 10.2 Additional rules locked by the owner (2026-11-20)
+
+- **All four variants are reported together, always** (§3).
+- **Trade count is shown prominently.** A confirmed variant with fewer than 200 development trades is INCONCLUSIVE, not a
+  pass, however good its point estimate.
+- **Multiple comparisons (two confirmed variants): Bonferroni.** For every confidence-interval test (expectancy CI, beats
+  plain random control, (a) beats base, (b) beats confirmed random control) the report shows the raw 90% interval AND the
+  Bonferroni-adjusted interval for two hypotheses (95%). **A PASS requires the adjusted (95%) lower bounds > 0.** The raw
+  intervals are shown for information.
+- **The holdout runs exactly once**, after development is complete and the owner has seen the development result. The
+  software refuses a second holdout run and refuses a holdout run before a development run exists. No peeking, no re-runs.
+- **Parameters must be frozen to run at all:** the hypothesis run refuses to start unless all four variants' parameter
+  hashes match the frozen hashes recorded in §11.
+
+## 11. Freeze record
+
+(Filled in when the build is complete and before the first development run.)
