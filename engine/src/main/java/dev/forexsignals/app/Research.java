@@ -72,6 +72,7 @@ final class Research {
         SymbolCatalog cat = ctx.catalog();
         List<Strategy> all = StrategyRegistry.discover();
         List<String> names = List.of(args.opt("strategies").orElse("ema_pullback,donchian_breakout,rsi_mean_reversion").split(","));
+        boolean diagnostic = args.flag("diagnostic");
 
         // Inputs: specs, spread samples, news calendar, costs, M1 data.
         Map<String, String[]> bq = new HashMap<>();
@@ -107,10 +108,10 @@ final class Research {
                 Duration.ofSeconds(10));
         List<Validator.StrategyResult> results = new ArrayList<>();
         for (String name : names) {
-            Validator.StrategyResult r = Validator.validate(in, StrategyRegistry.byName(all, name.strip()), rs, store);
+            Validator.StrategyResult r = Validator.validate(in, StrategyRegistry.byName(all, name.strip()), rs, store, !diagnostic);
             results.add(r);
             // CLAUDE.md: a baseline that fails on costs gets its H1-entry variant before anything is concluded.
-            if (r.failedOnCosts() && !name.endsWith("_h1")) {
+            if (!diagnostic && r.failedOnCosts() && !name.endsWith("_h1")) {
                 String h1 = name.strip() + "_h1";
                 if (all.stream().anyMatch(s -> s.meta().name().equals(h1)) && names.stream().noneMatch(n -> n.strip().equals(h1))) {
                     log.info("validate: {} failed on costs (gross > 0, net <= 0): running its H1 variant {}", name, h1);
@@ -119,7 +120,8 @@ final class Research {
             }
         }
         Path out = BacktestReport.write(Modes.reportDir(args), new BacktestReport.Context(Instant.now().truncatedTo(ChronoUnit.SECONDS), FEED, from, to,
-                calibrated, spreads, news, bias, weeks.stream().map(w -> w.label() + " " + w.from()).toList()), results);
+                calibrated, spreads, news, bias, weeks.stream().map(w -> w.label() + " " + w.from()).toList(),
+                diagnostic ? BacktestReport.DIAGNOSTIC_LABEL : null), results);
         log.info("validate: report written to {}", out);
         results.forEach(r -> log.info("  {} -> {}", r.strategyId(), r.gate().verdict()));
         return 0;

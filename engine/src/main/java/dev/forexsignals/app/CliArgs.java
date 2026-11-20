@@ -33,6 +33,7 @@ public record CliArgs(Mode mode, Map<String, String> options) {
               freeze    [--note=text]        record every strategy version's params hash BEFORE any out-of-sample test
               validate  [--strategies=a,b] [--from=<ISO>] [--to=<ISO>] [--news=config/news.csv] [--report=<dir>]
                         backtest + random control + cost stress + walk-forward + validation gate (Phase 2)
+                        [--diagnostic]       labelled DIAGNOSTIC: no verdict is recorded
               chatid    [--wait=PT2M]        print the Telegram chat ID of whoever pressed Start on the bot
                         (token read from the encrypted conf.xml, never shown; no database needed)
 
@@ -42,7 +43,7 @@ public record CliArgs(Mode mode, Map<String, String> options) {
     /** Every option name the code reads (any mode). Anything else is a usage error. */
     public static final Set<String> KNOWN_OPTIONS = Set.of(
             "mode", "config", "feed", "symbols", "duration", "seed", "from", "to", "source",
-            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf", "wait", "note", "strategies", "news");
+            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf", "wait", "note", "strategies", "news", "diagnostic");
 
     public static final class UsageException extends Exception {
         public UsageException(String message) { super(message); }

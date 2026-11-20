@@ -45,5 +45,9 @@ class ValidatorTest {
         assertThat(text).contains(BacktestReport.FILL_NOTE.substring(0, 40)).contains("MODELLED").contains("ONLY MAJOR events")
                 .contains("OUT-OF-SAMPLE NUMBERS WITHHELD").contains("No strategy is enabled for live signals");
         assertThat(Files.list(dir).filter(p -> p.toString().endsWith(".json")).count()).isEqualTo(1);
+        Path diag = BacktestReport.write(dir, new BacktestReport.Context(Instant.parse("2026-11-20T00:00:01Z"), "synthetic", EngineRig.FROM, EngineRig.TO,
+                Rig.COSTS, Rig.spreads(Rig.MEDIANS), news, Map.of(), List.of("2024Q1"), BacktestReport.DIAGNOSTIC_LABEL), List.of(r));
+        assertThat(diag.getFileName().toString()).startsWith("diagnostic-");
+        assertThat(Files.readString(diag)).contains("DIAGNOSTIC, NOT A VALIDATION RUN").contains("No verdict was recorded");
     }
 }

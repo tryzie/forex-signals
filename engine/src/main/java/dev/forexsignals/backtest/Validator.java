@@ -90,6 +90,14 @@ public final class Validator {
     }
 
     public static StrategyResult validate(Inputs in, Strategy parent, ResearchStore research, MarketStore store) throws Exception {
+        return validate(in, parent, research, store, true);
+    }
+
+    /**
+     * recordVerdict = false for a DIAGNOSTIC run: the gate is computed for information only and NO validation_result row
+     * is written, so a diagnostic can never become the PASS that a strategy's LIVE switch depends on.
+     */
+    public static StrategyResult validate(Inputs in, Strategy parent, ResearchStore research, MarketStore store, boolean recordVerdict) throws Exception {
         String id = parent.meta().id();
         String hash = ParamsHash.of(parent.meta());
         Instant startedAt = Instant.now();
@@ -127,11 +135,11 @@ public final class Validator {
             ValidationGate.Result gate = ValidationGate.evaluate(new ValidationGate.Inputs(p.metrics(), ci, regimes.covered(), regimes.note(), wf,
                     withheld.isEmpty(), withheld.orElse(""), stressForGate, vs));
             boolean failedOnCosts = p.metrics().trades() > 0 && p.metrics().grossExpectancy() > 0 && p.metrics().expectancy() <= 0;
-            if (research != null) {
+            if (research != null && recordVerdict) {
                 research.validationResult(parent.meta().name(), parent.meta().version(), hash, runId, gate.verdict().name(),
                         MarketStore.json(ValidationGate.asMap(gate)));
-                research.finishRun(runId, Instant.now());
             }
+            if (research != null) research.finishRun(runId, Instant.now());
             log.info("validation {}: {} (expectancy net {}R, gross {}R, {} trades)", id, gate.verdict(), String.format("%.3f", p.metrics().expectancy()),
                     String.format("%.3f", p.metrics().grossExpectancy()), p.metrics().trades());
             return new StrategyResult(id, parent.meta().name(), parent.meta().version(), hash, p, c, st, repriced, prob, ci, vs, wf, withheld,

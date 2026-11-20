@@ -50,12 +50,20 @@ public final class BacktestReport {
             .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 
     public record Context(Instant generatedAt, String feed, Instant from, Instant to, CostModel.Settings costs, SpreadModel spreads,
-                          NewsCalendar news, Map<String, FillBias.SymbolBias> fillBias, List<String> weeks) {}
+                          NewsCalendar news, Map<String, FillBias.SymbolBias> fillBias, List<String> weeks, String label) {
+        public Context(Instant generatedAt, String feed, Instant from, Instant to, CostModel.Settings costs, SpreadModel spreads,
+                       NewsCalendar news, Map<String, FillBias.SymbolBias> fillBias, List<String> weeks) {
+            this(generatedAt, feed, from, to, costs, spreads, news, fillBias, weeks, null);
+        }
+    }
+
+    public static final String DIAGNOSTIC_LABEL = "DIAGNOSTIC, NOT A VALIDATION RUN";
 
     private BacktestReport() {}
 
     public static Map<String, Object> json(Context ctx, List<Validator.StrategyResult> results) {
         Map<String, Object> root = new LinkedHashMap<>();
+        if (ctx.label() != null) root.put("label", ctx.label());
         root.put("generatedAt", ctx.generatedAt().toString());
         root.put("feed", ctx.feed());
         root.put("data", Map.of("from", ctx.from().toString(), "to", ctx.to().toString()));
@@ -142,7 +150,7 @@ public final class BacktestReport {
 
     public static Path write(Path dir, Context ctx, List<Validator.StrategyResult> results) throws IOException {
         Files.createDirectories(dir);
-        String stem = "validation-" + ctx.feed() + "-" + ctx.generatedAt().toString().replace(':', '-');
+        String stem = (ctx.label() != null ? "diagnostic-" : "validation-") + ctx.feed() + "-" + ctx.generatedAt().toString().replace(':', '-');
         JSON.writeValue(dir.resolve(stem + ".json").toFile(), json(ctx, results));
         Path html = dir.resolve(stem + ".html");
         Files.writeString(html, html(ctx, results));
@@ -161,7 +169,12 @@ public final class BacktestReport {
                 + "td,th{border:1px solid #bbb;padding:3px 8px;font-size:13px;text-align:right}th{background:#eee}td:first-child{text-align:left}"
                 + ".PASS{color:#06702b;font-weight:700}.FAIL{color:#b00020;font-weight:700}.INCONCLUSIVE{color:#8a5a00;font-weight:700}"
                 + ".note{background:#f6f6f6;border-left:4px solid #888;padding:6px 10px;margin:8px 0}</style></head><body>");
-        h.append("<h1>Phase 2 validation report</h1><p>Feed <b>").append(esc(ctx.feed())).append("</b>, data ").append(ctx.from()).append(" to ")
+        if (ctx.label() != null) {
+            h.append("<div style=\"background:#fff3cd;border:3px solid #b00020;padding:10px;font-size:20px;font-weight:700\">")
+                    .append(esc(ctx.label())).append(": the gate checks below are for information only. No verdict was recorded, and a "
+                            + "less-negative number is not a reason to trade a strategy.</div>");
+        }
+        h.append("<h1>").append(ctx.label() != null ? "Phase 2 diagnostic report" : "Phase 2 validation report").append("</h1><p>Feed <b>").append(esc(ctx.feed())).append("</b>, data ").append(ctx.from()).append(" to ")
                 .append(ctx.to()).append(", generated ").append(ctx.generatedAt()).append(" UTC. All results are after costs unless marked gross. "
                         + "<b>No strategy is enabled for live signals.</b></p>");
         for (String n : List.of(FILL_NOTE, SPREAD_NOTE, NEWS_NOTE)) h.append("<div class=\"note\">").append(esc(n)).append("</div>");
