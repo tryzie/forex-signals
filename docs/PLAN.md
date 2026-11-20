@@ -656,6 +656,11 @@ by class plus the measured fill bias, quarterly spread model), parameters frozen
 - Fill model: the measured bias (real ticks vs M1 model) was added as extra slippage; the worst-case-within-the-minute fill
   costs about another 0.1R per trade. Stop/target same-bar ambiguity: 1-2 trades per strategy.
 - A failing baseline is a result, not a bug: nothing was tuned. No strategy is enabled for live signals.
+- **H1-entry variants, DIAGNOSTIC ONLY (owner request, 2026-11-20; `diagnostic-ctrader-2026-11-20T09-24-09Z.html`, no
+  verdict recorded):** frozen parameters, no tuning. Net R: EMA -0.025, Donchian +0.026 (CI -0.026 .. 0.079), RSI -0.036;
+  cost drag 0.074-0.092R vs 0.096-0.119R at M15 (about 25% smaller). All fail the gate checks. Donchian H1 beats its control
+  (CI 0.046 .. 0.161) but its expectancy CI includes 0, it is negative under cost stress and 63% of its positive R is XAUUSD;
+  as one of six variants tested, it is a hypothesis at most, not a reason to trade. See docs/FINDINGS.md.
 
 ## 15. Transcript-to-strategy workflow (later, plan only)
 
