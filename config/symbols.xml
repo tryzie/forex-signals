@@ -35,8 +35,8 @@
     <feed name="ctrader" symbol="XAGUSD" required="true"/>
     <feed name="deriv" symbol="frxXAGUSD" required="false"/>
   </symbol>
-  <symbol code="USDX" role="CONTEXT" class="INDEX" base="USD" quote="IDX" digits="3" hours="FX" verified="false">
-    <!-- Exact cTrader name still to be reported from the demo account (PLAN §17). -->
+  <symbol code="USDX" role="CONTEXT" class="INDEX" base="USD" quote="IDX" digits="3" hours="FX" verified="true">
+    <!-- Verified 2026-11-20 against pre-registered criteria V1-V4 (docs/hyp/eurusd-confirmation.md, data/reports/usdx-verification-*). Still CONTEXT only: never traded. -->
     <feed name="ctrader" symbol="USDX" required="false"/>
   </symbol>
   <symbol code="USDCAD" role="DATA_ONLY" class="FX" base="USD" quote="CAD" digits="5" hours="FX">

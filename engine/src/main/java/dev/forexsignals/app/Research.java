@@ -66,6 +66,33 @@ final class Research {
         return new CostModel.Settings(comm, slip, 1.0, 1.0, Map.of());
     }
 
+    /** Pre-registered USDX verification (docs/hyp/eurusd-confirmation.md §10.1). Exit 0 if clean, 4 if not. */
+    static int usdxCheck(CliArgs args, Modes.Context ctx) throws Exception {
+        MarketStore store = ctx.store();
+        String sql = "SELECT digits, contract_size, min_volume, volume_step, trading_hours::text FROM symbol_spec WHERE feed = 'ctrader' "
+                + "AND symbol = 'USDX' ORDER BY captured_at DESC LIMIT 1";
+        dev.forexsignals.history.UsdxCheck.Spec spec;
+        try (var c = store.db().connection(); var ps = c.prepareStatement(sql); var rs = ps.executeQuery()) {
+            if (!rs.next()) throw new ConfigException("no stored cTrader spec for USDX");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> th = new com.fasterxml.jackson.databind.ObjectMapper().readValue(rs.getString(5), Map.class);
+            var sched = dev.forexsignals.market.TradingSchedule.fromSpec(th);
+            String hours = sched.isPresent() ? sched.get().intervals().stream().map(i -> i[0] + "-" + i[1]).toList().toString() : "none";
+            spec = new dev.forexsignals.history.UsdxCheck.Spec(rs.getInt(1), rs.getDouble(2), rs.getDouble(3), rs.getDouble(4), hours,
+                    store.scalarLong("SELECT count(*) FROM feed_event WHERE symbol = 'USDX' AND kind = 'SPEC_CHANGED'"));
+        }
+        // Reviewed schedule (seconds from Sunday 00:00 New York): Sun 18:00-Mon 16:59, Mon..Thu 20:00-next 16:59, Thu 20:00-Fri 16:55.
+        String reviewed = "[64800-147540, 158400-233940, 244800-320340, 331200-406740, 417600-492900]";
+        boolean matches = spec.digits() == 3 && spec.contractSize() == 100 && spec.minVolume() == 1 && spec.volumeStep() == 1 && spec.hours().equals(reviewed);
+        Instant from = Instant.parse("2023-11-19T00:00:00Z"), to = Instant.parse("2026-11-19T00:00:00Z");
+        var r = dev.forexsignals.history.UsdxCheck.run(store, FEED, from, to, spec, matches);
+        Path out = dev.forexsignals.history.UsdxCheck.write(Modes.reportDir(args), Instant.now().truncatedTo(ChronoUnit.SECONDS), r);
+        log.info("USDX verification: v1={} v2={} ({}) v3={} (syn {} eur {}) v4={} ({} jumps) -> clean={} ; report {}", r.v1(), r.v2(),
+                String.format("%.4f", r.coverage()), r.v3(), String.format("%.3f", r.corrSyn()), String.format("%.3f", r.corrEurusd()), r.v4(),
+                r.jumps().size(), r.clean(), out);
+        return r.clean() ? 0 : 4;
+    }
+
     static int validate(CliArgs args, Modes.Context ctx) throws Exception {
         MarketStore store = ctx.store();
         ResearchStore rs = new ResearchStore(store);

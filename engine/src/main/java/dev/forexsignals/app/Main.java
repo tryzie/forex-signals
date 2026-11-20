@@ -58,6 +58,7 @@ public final class Main {
                     case SPREADSAMPLE -> Modes.spreadSample(args, ctx);
                     case FREEZE -> Research.freeze(args, ctx);
                     case VALIDATE -> Research.validate(args, ctx);
+                    case USDXCHECK -> Research.usdxCheck(args, ctx);
                     case CHATID -> throw new IllegalStateException("handled above");
                 };
             }
