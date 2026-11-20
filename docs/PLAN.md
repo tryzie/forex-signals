@@ -634,6 +634,28 @@ This is a 4-minute sample, not the calibration week.
 - **USD_NET_EXPOSURE** is implied by CURRENCY_EXPOSURE at the default limits (USD legs <= 2 per side means |net| <= 2);
   it is tested with a tighter limit and kept for configurability.
 - **Targets** are rounded away from the reference on the price grid, so a 1.5R target is never below 1.5R.
+- **Constant notional in validation runs:** every trade is sized on the 10,000 USD starting balance and the daily loss
+  cap is measured against it each day. Compounding a losing strategy toward zero made later trades fail SIZE_BELOW_MIN
+  and the daily cap (5,586 such rejections for EMA in the first run), censoring the sample like a halting kill switch.
+
+### 14.5 Phase 2 results (2026-11-20, report `data/reports/validation-ctrader-2026-11-20T08-51-28Z.html`)
+
+cTrader M1, 2023-11-19 to 2026-11-19, all costs on (commission FX 3.00 / XAU 3.50 / XAG 0.00 per side per lot, slippage
+by class plus the measured fill bias, quarterly spread model), parameters frozen 2026-11-19 20:29 UTC before any run.
+
+| Strategy (M15) | Trades | Net R/trade | Gross R/trade | Cost R | 90% CI | PF | vs random control (90% CI) | Walk-forward OOS | Verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| ema_pullback | 4,992 | -0.129 | -0.025 | 0.104 | -0.161 .. -0.097 | 0.78 | -0.012 (-0.046 .. 0.023) | -0.136R, 3,251 trades | FAIL |
+| donchian_breakout | 4,319 | -0.117 | -0.021 | 0.096 | -0.150 .. -0.085 | 0.77 | -0.016 (-0.049 .. 0.016) | -0.094R, 2,841 trades | FAIL |
+| rsi_mean_reversion | 857 | -0.129 | -0.010 | 0.119 | -0.194 .. -0.062 | 0.78 | -0.020 (-0.105 .. 0.067) | -0.156R, 537 trades | FAIL |
+
+- None "failed on costs" by the plan's definition (gross > 0, net <= 0): gross is already slightly negative, so the
+  H1-entry variants were NOT triggered. Costs (about 0.10-0.12R per trade at M15) would also sink a small gross edge.
+- None beats its random control. XAGUSD never trades at M15: every proposal fails COST_VS_STOP (0.04 round-trip
+  slippage plus spread against a 1.5 ATR(M15) stop).
+- Fill model: the measured bias (real ticks vs M1 model) was added as extra slippage; the worst-case-within-the-minute fill
+  costs about another 0.1R per trade. Stop/target same-bar ambiguity: 1-2 trades per strategy.
+- A failing baseline is a result, not a bug: nothing was tuned. No strategy is enabled for live signals.
 
 ## 15. Transcript-to-strategy workflow (later, plan only)
 
