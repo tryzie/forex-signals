@@ -125,9 +125,9 @@ cannot "succeed" for this hypothesis.
 **Verdicts:** PASS only if Stage 1 and Stage 2 both pass. Any FAIL check is FAIL; too few trades is INCONCLUSIVE, which
 counts as not passing. A pass would make the variant **eligible for SHADOW paper-tracking only**; nothing goes live.
 
-**Multiplicity, disclosed:** two confirmed variants are tested against the same thresholds, with no correction. The
-report will also show 95% CIs so that a borderline pass can be judged against a stricter bar. A single pass among the
-four would be treated with caution, not as a discovery.
+**Multiplicity:** superseded by the owner's rule in §10.2 — every CI test is judged on the Bonferroni-adjusted 95%
+interval (two hypotheses), with the raw 90% interval shown alongside. A single pass among the four would still be
+treated with caution, not as a discovery.
 
 **Statistical power, disclosed:** the bases made about 625 EURUSD trades in the development window. If confirmation keeps
 25-40% of them, a confirmed variant has roughly 150-250 trades. Below 200 it is INCONCLUSIVE on check 1, and with about
@@ -186,4 +186,19 @@ The result of this check is reported to the owner. Only if all four pass is `ver
 
 ## 11. Freeze record
 
-(Filled in when the build is complete and before the first development run.)
+Frozen with `--mode=freeze` at **2026-11-20T10:29:38Z**, after the build (commit 00b7808) and before any hypothesis run.
+`--mode=hypothesis` refuses to run unless each variant's current hash equals its frozen hash and appears below.
+
+| Variant | Params hash (SHA-256 of canonical meta) |
+|---|---|
+| eurusd_donchian_base@1 | `607a7a4e6a7fe6e7a5a1bea524874cbc6c0b482940fce20972d19da0dc0e9243` |
+| eurusd_donchian_conf@1 | `99574b97938d01a9f3dc84ee18e19ad1147d3be95286d9fbd735fcbd2aea0e65` |
+| eurusd_ema_base@1 | `8ec743544e2b5f266ebf796fdf1794f55782e73f601c8ae9d2795f7eb6a50d03` |
+| eurusd_ema_conf@1 | `b60eb3ccf0897e4b104df5d4f7cdbc9b7ee556a4d14a4647e8471db0f1bec176` |
+
+The Phase 2 strategies' hashes were re-checked in the same freeze and are unchanged.
+
+USDX verification (§10.1): clean on all four criteria, 2026-11-20 (`docs/hyp/usdx-verification-2026-11-20.md`).
+
+Run order: development (`--stage=development`), report to the owner, stop. Holdout (`--stage=holdout
+--confirm-holdout-once=true`) only after the owner has seen the development result; the database refuses a second one.
