@@ -36,6 +36,16 @@ public interface StrategyContext {
 
     OptionalDouble donchianLow(Timeframe tf, int n, boolean excludeLatest);
 
+    /**
+     * A closed bar of a declared CONTEXT symbol (meta().contextSymbols()), looked up by its open time. Empty if that symbol
+     * has no bar with that open time. Asking for a bar that cannot have closed by now (its period ends after now) throws
+     * LookaheadViolation even if the bar does not exist yet.
+     */
+    java.util.Optional<Candle> contextBar(String symbol, Timeframe tf, Instant openTime);
+
+    /** A declared context indicator of a context symbol at the bar with this open time (same guard; empty while warming up). */
+    OptionalDouble contextInd(String symbol, Timeframe tf, IndicatorKind kind, int period, Instant openTime);
+
     /** Seeded random numbers (used only by the random-entry controls); reproducible per run, strategy and symbol. */
     RandomGenerator random();
 }

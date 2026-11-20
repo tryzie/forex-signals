@@ -47,7 +47,8 @@ public final class BacktestRunner {
                 if (idx[k] >= s.n || s.open[idx[k]] != next) continue;
                 int i = idx[k]++;
                 Instant t0 = Instant.ofEpochMilli(next);
-                double spread = spreads.median(s.symbol, t0);
+                // Context-only symbols (never traded) have no spread samples; their candles are built on the bid only.
+                double spread = spreads.covers(s.symbol) ? spreads.median(s.symbol, t0) : 0;
                 double[] path = order(s.o[i], s.h[i], s.l[i], s.c[i], engine.netOpenDirection(s.symbol, t0));
                 for (int j = 0; j < 4; j++) {
                     Instant ts = t0.plusMillis(j);

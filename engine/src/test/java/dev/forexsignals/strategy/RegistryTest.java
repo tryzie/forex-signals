@@ -16,6 +16,7 @@ class RegistryTest {
         var all = StrategyRegistry.discover();
         assertThat(all).extracting(s -> s.meta().id()).containsExactly(
                 "donchian_breakout@1", "donchian_breakout_h1@1", "ema_pullback@1", "ema_pullback_h1@1",
+                "eurusd_donchian_base@1", "eurusd_donchian_conf@1", "eurusd_ema_base@1", "eurusd_ema_conf@1",
                 "rsi_mean_reversion@1", "rsi_mean_reversion_h1@1");
     }
 
@@ -24,7 +25,11 @@ class RegistryTest {
         var catalog = SymbolCatalog.load(Optional.empty());
         for (Strategy s : StrategyRegistry.discover()) {
             String params = s.meta().params().toString();
-            for (var d : catalog.all()) assertThat(params).as(s.meta().id()).doesNotContain(d.code());
+            // Declared context symbols (read-only inputs, e.g. the confirmation gate) may be named; nothing else may.
+            for (var d : catalog.all()) {
+                if (s.meta().contextSymbols().contains(d.code())) continue;
+                assertThat(params).as(s.meta().id()).doesNotContain(d.code());
+            }
             s.meta().params().values().forEach(v -> assertThat(v).as("scalar params only").isInstanceOfAny(Number.class, String.class));
         }
     }

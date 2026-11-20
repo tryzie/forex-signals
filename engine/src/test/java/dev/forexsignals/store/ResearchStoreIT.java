@@ -27,4 +27,21 @@ class ResearchStoreIT {
             assertThat(ms.scalarLong("SELECT count(*) FROM validation_result WHERE verdict = 'FAIL'")).isEqualTo(1);
         }
     }
+
+    @Test
+    void holdoutRunsExactlyOnceAndOnlyAfterAFinishedDevelopmentRun() {
+        try (Database db = TestDb.freshMigrated()) {
+            ResearchStore rs = new ResearchStore(new MarketStore(db));
+            Instant t = Instant.parse("2026-11-20T12:00:00Z");
+            assertThat(rs.hypothesisDevelopmentDone("h")).isFalse();
+            long dev = rs.hypothesisStart("h", "DEVELOPMENT", t);
+            assertThat(rs.hypothesisDevelopmentDone("h")).as("started, not finished").isFalse();
+            rs.hypothesisFinish(dev, t.plusSeconds(60), "r.md", "{}");
+            assertThat(rs.hypothesisDevelopmentDone("h")).isTrue();
+            rs.hypothesisStart("h", "HOLDOUT", t.plusSeconds(120));
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> rs.hypothesisStart("h", "HOLDOUT", t.plusSeconds(180)))
+                    .isInstanceOf(Database.StoreException.class);
+            rs.hypothesisStart("other", "HOLDOUT", t.plusSeconds(180)); // a different hypothesis is independent
+        }
+    }
 }

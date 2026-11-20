@@ -41,9 +41,13 @@ public class EmaPullback implements Baseline {
     public EmaPullback() { this(Timeframes.M15); }
 
     protected EmaPullback(Timeframes tf) {
+        this(tf, "ema_pullback" + tf.suffix(), List.of("EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "XAGUSD"));
+    }
+
+    /** Same rules and parameters; only the name and the symbol list differ (e.g. the EURUSD-only hypothesis variants). */
+    protected EmaPullback(Timeframes tf, String name, List<String> symbols) {
         this.tf = tf;
-        this.meta = new StrategyMeta("ema_pullback" + tf.suffix(), "1", "baseline",
-                List.of("EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "XAGUSD"), tf.entry(), List.of(tf.fast(), tf.slow()), PARAMS,
+        this.meta = new StrategyMeta(name, "1", "baseline", symbols, tf.entry(), List.of(tf.fast(), tf.slow()), PARAMS,
                 List.of(new IndicatorRequest(tf.entry(), EMA, 20), new IndicatorRequest(tf.entry(), EMA, 50), new IndicatorRequest(tf.entry(), ATR, 14),
                         new IndicatorRequest(tf.fast(), EMA, 50), new IndicatorRequest(tf.slow(), EMA, 50)));
     }

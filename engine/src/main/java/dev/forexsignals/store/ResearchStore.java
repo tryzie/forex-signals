@@ -61,6 +61,34 @@ public final class ResearchStore {
         return Optional.empty();
     }
 
+    // ------------------------------------------------------------------------------------ pre-registered hypothesis stages
+
+    /** True if a finished DEVELOPMENT run of this hypothesis exists. */
+    public boolean hypothesisDevelopmentDone(String hypothesis) {
+        return store.scalarLong("SELECT count(*) FROM hypothesis_run WHERE hypothesis = ? AND stage = 'DEVELOPMENT' AND finished_at IS NOT NULL",
+                hypothesis) > 0;
+    }
+
+    /**
+     * Records the start of a stage BEFORE it runs. For HOLDOUT the unique index refuses a second row, so a holdout that
+     * was ever started (even if it crashed) can never be started again.
+     */
+    public long hypothesisStart(String hypothesis, String stage, Instant at) {
+        String sql = "INSERT INTO hypothesis_run (hypothesis, stage, started_at) VALUES (?,?,?) RETURNING id";
+        try (Connection c = store.db().connection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, hypothesis);
+            ps.setString(2, stage);
+            ps.setObject(3, utc(at));
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1); }
+        } catch (SQLException e) {
+            throw new Database.StoreException("hypothesis " + hypothesis + " " + stage + " refused (holdout already started?)", e);
+        }
+    }
+
+    public void hypothesisFinish(long id, Instant at, String reportPath, String summaryJson) {
+        exec("UPDATE hypothesis_run SET finished_at = ?, report_path = ?, summary = ?::jsonb WHERE id = ?", utc(at), reportPath, summaryJson, id);
+    }
+
     // ------------------------------------------------------------------------------------ runs
 
     public UUID startRun(String kind, String feed, Instant from, Instant to, String costProfile, String configHash, String gitSha, Instant startedAt) {

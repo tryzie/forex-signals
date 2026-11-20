@@ -42,13 +42,17 @@ public class DonchianBreakout implements Baseline {
     public DonchianBreakout() { this(Timeframes.M15); }
 
     protected DonchianBreakout(Timeframes tf) {
+        this(tf, "donchian_breakout" + tf.suffix(), List.of("EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "XAGUSD"));
+    }
+
+    /** Same rules and parameters; only the name and the symbol list differ (e.g. the EURUSD-only hypothesis variants). */
+    protected DonchianBreakout(Timeframes tf, String name, List<String> symbols) {
         this.tf = tf;
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("donchianEntry", 20); p.put("donchianTrail", 10); p.put("atrPeriod", 14); p.put("atrRegimeLong", 100);
         p.put("volRatioMin", 0.8); p.put("volRatioMax", 2.0); p.put("emaTrend", 50); p.put("stopMinAtr", 1.0); p.put("stopMaxAtr", 1.5);
         p.put("targetR", 2.0); p.put("timeStopBars", 48); p.put("failedBreakoutBars", 4);
-        this.meta = new StrategyMeta("donchian_breakout" + tf.suffix(), "1", "baseline",
-                List.of("EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "XAGUSD"), tf.entry(), List.of(tf.slow()), p,
+        this.meta = new StrategyMeta(name, "1", "baseline", symbols, tf.entry(), List.of(tf.slow()), p,
                 List.of(new IndicatorRequest(tf.entry(), ATR, 14), new IndicatorRequest(tf.entry(), ATR, 100),
                         new IndicatorRequest(tf.entry(), DONCHIAN, 20), new IndicatorRequest(tf.entry(), DONCHIAN, 10),
                         new IndicatorRequest(tf.slow(), EMA, 50)));

@@ -21,7 +21,7 @@ class StrategyImportGuardTest {
 
     private static final Pattern IMPORT = Pattern.compile("(?m)^import\\s+(static\\s+)?([\\w.]+)");
     private static final List<String> ALLOWED = List.of("dev.forexsignals.strategy.api.", "dev.forexsignals.market.Candle",
-            "dev.forexsignals.market.Timeframe", "java.util.", "java.lang.");
+            "dev.forexsignals.market.Timeframe", "java.util.", "java.lang.", "java.time.Instant", "java.time.Duration");
     private static final List<Pattern> FORBIDDEN_CODE = List.of(
             Pattern.compile("Instant\\.now\\(|System\\.currentTimeMillis|System\\.nanoTime|LocalDateTime\\.now|Clock\\."),
             Pattern.compile("new\\s+(java\\.util\\.)?Random\\(|ThreadLocalRandom|Math\\.random"),

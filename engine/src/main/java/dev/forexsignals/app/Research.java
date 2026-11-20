@@ -1,6 +1,8 @@
 package dev.forexsignals.app;
 
 import dev.forexsignals.backtest.FillBias;
+import dev.forexsignals.backtest.HypothesisRunner;
+import dev.forexsignals.report.HypothesisReport;
 import dev.forexsignals.backtest.M1Series;
 import dev.forexsignals.backtest.Validator;
 import dev.forexsignals.config.ConfigException;
@@ -151,6 +153,95 @@ final class Research {
                 diagnostic ? BacktestReport.DIAGNOSTIC_LABEL : null), results);
         log.info("validate: report written to {}", out);
         results.forEach(r -> log.info("  {} -> {}", r.strategyId(), r.gate().verdict()));
+        return 0;
+    }
+
+    // ------------------------------------------------------------------------------------ pre-registered hypothesis
+
+    static final String HYPOTHESIS = "eurusd-confirmation";
+    static final Path HYPOTHESIS_DOC = Path.of("docs/hyp/eurusd-confirmation.md");
+    static final Instant DEV_FROM = Instant.parse("2023-11-19T00:00:00Z"), DEV_TO = Instant.parse("2025-11-19T00:00:00Z"),
+            HOLDOUT_TO = Instant.parse("2026-11-19T00:00:00Z");
+    static final List<String[]> HYPOTHESIS_PAIRS = List.of(new String[]{"eurusd_donchian_base", "eurusd_donchian_conf"},
+            new String[]{"eurusd_ema_base", "eurusd_ema_conf"});
+
+    /**
+     * docs/hyp/eurusd-confirmation.md, one stage. Refuses to run unless all four variants' hashes are frozen, unchanged,
+     * and written in the document's freeze record. DEVELOPMENT loads M1 only up to the development end (no holdout bar is
+     * ever in memory). HOLDOUT needs a finished development run and --confirm-holdout-once=true, and is recorded before it
+     * starts so it can never run twice.
+     */
+    static int hypothesis(CliArgs args, Modes.Context ctx) throws Exception {
+        String stageName = args.opt("stage").orElseThrow(() -> new ConfigException("--stage=development|holdout is required")).toUpperCase();
+        if (!stageName.equals("DEVELOPMENT") && !stageName.equals("HOLDOUT")) throw new ConfigException("--stage must be development or holdout");
+        MarketStore store = ctx.store();
+        ResearchStore rs = new ResearchStore(store);
+        SymbolCatalog cat = ctx.catalog();
+
+        // 1. Frozen parameters: registry hash == latest frozen hash, frozen before now, and recorded in the document.
+        List<Strategy> all = StrategyRegistry.discover();
+        String doc = java.nio.file.Files.readString(HYPOTHESIS_DOC);
+        Map<String, String> frozen = new LinkedHashMap<>();
+        List<Strategy[]> pairs = new ArrayList<>();
+        Instant now = Instant.now();
+        for (String[] p : HYPOTHESIS_PAIRS) {
+            Strategy[] pair = {StrategyRegistry.byName(all, p[0]), StrategyRegistry.byName(all, p[1])};
+            for (Strategy s : pair) {
+                String hash = ParamsHash.of(s.meta());
+                Optional<String> why = ResearchStore.oosWithheldReason(rs.latestFrozen(s.meta().id()), hash, now);
+                if (why.isPresent()) throw new ConfigException(s.meta().id() + ": " + why.get() + "; refusing to run the hypothesis");
+                if (!doc.contains(hash)) throw new ConfigException(s.meta().id() + ": params hash " + hash + " is not in the freeze record of " + HYPOTHESIS_DOC);
+                frozen.put(s.meta().id(), hash);
+            }
+            pairs.add(pair);
+        }
+        boolean usdxVerified = cat.all().stream().anyMatch(d -> d.code().equals("USDX") && d.verified());
+        if (!usdxVerified) throw new ConfigException("USDX is not verified (docs/hyp §10.1): the gate may not run");
+
+        // 2. Stage guard.
+        HypothesisRunner.Stage st;
+        Instant loadFrom = DEV_FROM, loadTo;
+        if (stageName.equals("DEVELOPMENT")) {
+            st = new HypothesisRunner.Stage("DEVELOPMENT", DEV_FROM, DEV_TO);
+            loadTo = DEV_TO;
+        } else {
+            if (!rs.hypothesisDevelopmentDone(HYPOTHESIS)) throw new ConfigException("holdout refused: no finished development run");
+            if (!args.flag("confirm-holdout-once")) throw new ConfigException("holdout refused: pass --confirm-holdout-once=true (it can run only once)");
+            st = new HypothesisRunner.Stage("HOLDOUT", DEV_TO, HOLDOUT_TO);
+            loadTo = HOLDOUT_TO; // warm-up and open-trade state come from the development period; statistics only from the holdout
+        }
+        long runId = rs.hypothesisStart(HYPOTHESIS, st.name(), now);
+
+        // 3. Inputs, as in Phase 2 validation; data strictly inside [loadFrom, loadTo).
+        Map<String, String[]> bq = new HashMap<>();
+        cat.all().forEach(d -> bq.put(d.code(), new String[]{d.base(), d.quote()}));
+        Map<String, InstrumentSpec> specs = rs.specs(FEED, bq);
+        SpreadModel spreads = new SpreadModel(rs.spreadSamples(FEED));
+        NewsCalendar news = NewsCalendar.load(Path.of(args.opt("news").orElse("config/news.csv")));
+        CostModel.Settings costs = costSettings(ctx.cfg());
+        if (!specs.containsKey("EURUSD") || !spreads.covers("EURUSD")) throw new ConfigException("EURUSD spec or spread samples missing");
+        Map<String, M1Series> m1 = new LinkedHashMap<>();
+        for (String s : List.of("EURUSD", "USDX", "GBPUSD", "AUDUSD", "XAUUSD")) {
+            m1.put(s, M1Series.load(store, FEED, s, loadFrom, loadTo));
+            log.info("hypothesis: loaded {} M1 bars of {} [{}, {})", m1.get(s).n, s, loadFrom, loadTo);
+        }
+        List<SpreadSampler.Week> weeks = SpreadSampler.weeks(2024, loadTo).stream().filter(w -> !w.to().isAfter(loadTo)).toList();
+        Map<String, FillBias.SymbolBias> bias = FillBias.measure(store, FEED, m1, spreads, weeks, List.of("EURUSD"), Duration.ofSeconds(10));
+        Map<String, Double> extra = new HashMap<>();
+        bias.forEach((k, v) -> { if (v.extraSlippage() > 0) extra.put(k, v.extraSlippage()); });
+        CostModel.Settings calibrated = costs.withExtraSlippage(extra);
+        log.info("hypothesis: fill bias {}", bias);
+        Validator.Inputs in = new Validator.Inputs(FEED, loadFrom, loadTo, m1, calibrated, specs, spreads, news, cat, RiskGate.Config.defaults(), 20261119L,
+                Duration.ofSeconds(10));
+
+        // 4. Run and report.
+        List<HypothesisRunner.Confirmation> cs = HypothesisRunner.run(in, store, pairs, st);
+        String costsNote = "commission, slippage (session/news multipliers) plus measured fill bias " + extra + " from " + weeks.size()
+                + " sampled weeks ending by " + loadTo + ", modelled spread, swap; constant 10,000 USD notional, kill switch recorded not halting";
+        Path out = HypothesisReport.write(Modes.reportDir(args), new HypothesisReport.Context(now.truncatedTo(ChronoUnit.SECONDS), st, frozen, costsNote),
+                cs, store, FEED);
+        rs.hypothesisFinish(runId, Instant.now(), out.toString(), MarketStore.json(HypothesisRunner.summary(cs)));
+        log.info("hypothesis {}: report written to {}", st.name(), out);
         return 0;
     }
 }

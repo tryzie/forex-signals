@@ -78,6 +78,10 @@ public final class Validator {
                 List.of(s), in.catalog(), gate, costs, (sym, t) -> BacktestRunner.at(in.m1(), sym, t), sym -> true);
         Map<String, M1Series> data = new TreeMap<>();
         for (String sym : s.meta().symbols()) if (in.m1().containsKey(sym)) data.put(sym, in.m1().get(sym));
+        for (String sym : s.meta().contextSymbols()) {
+            if (!in.m1().containsKey(sym)) throw new IllegalStateException(s.meta().id() + " needs context symbol " + sym + " (not loaded)");
+            data.put(sym, in.m1().get(sym));
+        }
         long t0 = System.nanoTime();
         BacktestRunner.run(e, data, in.spreads(), in.from(), in.to(), null);
         String id = s.meta().id();
@@ -185,11 +189,17 @@ public final class Validator {
      * symbols; months in the top third are "trending", bottom third "ranging". Covered if trades fall in both kinds.
      */
     static Regimes regimes(MarketStore store, String feed, List<String> symbols, List<TradeR> trades) {
+        return regimes(store, feed, symbols, trades, Instant.EPOCH, Instant.parse("9999-01-01T00:00:00Z"));
+    }
+
+    /** Same, with the H4 bars (and so the terciles) bounded to [from, to): a development stage never reads holdout bars. */
+    static Regimes regimes(MarketStore store, String feed, List<String> symbols, List<TradeR> trades, Instant from, Instant to) {
         if (store == null || trades.isEmpty()) return new Regimes(false, "no data");
         Map<YearMonth, double[]> sum = new TreeMap<>();
         for (String sym : symbols) {
             Adx adx = new Adx(14);
-            for (Candle c : store.loadDerived(feed, sym, Timeframe.H4, Instant.EPOCH, Instant.parse("9999-01-01T00:00:00Z"))) {
+            for (Candle c : store.loadDerived(feed, sym, Timeframe.H4, from, to)) {
+                if (c.closeTime().isAfter(to)) continue; // a bar straddling the bound would carry data from after it
                 adx.update(c);
                 if (!adx.ready()) continue;
                 double[] v = sum.computeIfAbsent(YearMonth.from(c.openTime().atZone(ZoneOffset.UTC)), k -> new double[2]);

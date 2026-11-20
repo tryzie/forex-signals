@@ -26,7 +26,10 @@ public final class Bootstrap {
         return d.get(IsoFields.WEEK_BASED_YEAR) + "-W" + String.format("%02d", d.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
     }
 
-    public static Ci meanCi(List<TradeR> trades, int resamples, long seed) {
+    public static Ci meanCi(List<TradeR> trades, int resamples, long seed) { return meanCi(trades, resamples, seed, 0.90); }
+
+    /** Two-sided CI at the given level (0.90 by default; 0.95 = Bonferroni-adjusted 90% for two hypotheses). */
+    public static Ci meanCi(List<TradeR> trades, int resamples, long seed, double level) {
         Map<String, double[]> byWeek = group(trades, TradeR::netR);
         List<double[]> weeks = new ArrayList<>(byWeek.values());
         if (weeks.isEmpty()) return new Ci(Double.NaN, Double.NaN, Double.NaN, 0, resamples);
@@ -44,11 +47,14 @@ public final class Bootstrap {
         }
         Arrays.sort(stats);
         double mean = trades.stream().mapToDouble(TradeR::netR).average().orElse(Double.NaN);
-        return new Ci(mean, stats[(int) (0.05 * resamples)], stats[(int) (0.95 * resamples) - 1], weeks.size(), resamples);
+        double tail = (1 - level) / 2;
+        return new Ci(mean, stats[(int) (tail * resamples)], stats[(int) ((1 - tail) * resamples) - 1], weeks.size(), resamples);
     }
 
     /** CI of (mean A - mean B), resampling the union of weeks jointly (check 8: parent vs its random control). */
-    public static Ci differenceCi(List<TradeR> a, List<TradeR> b, int resamples, long seed) {
+    public static Ci differenceCi(List<TradeR> a, List<TradeR> b, int resamples, long seed) { return differenceCi(a, b, resamples, seed, 0.90); }
+
+    public static Ci differenceCi(List<TradeR> a, List<TradeR> b, int resamples, long seed, double level) {
         Map<String, double[]> wa = group(a, TradeR::netR), wb = group(b, TradeR::netR);
         List<String> weeks = new ArrayList<>(new java.util.TreeSet<>(wa.keySet()) {{ addAll(wb.keySet()); }});
         if (weeks.isEmpty()) return new Ci(Double.NaN, Double.NaN, Double.NaN, 0, resamples);
@@ -70,7 +76,8 @@ public final class Bootstrap {
         double[] s = Arrays.copyOf(stats, valid);
         Arrays.sort(s);
         double diff = a.stream().mapToDouble(TradeR::netR).average().orElse(Double.NaN) - b.stream().mapToDouble(TradeR::netR).average().orElse(Double.NaN);
-        return new Ci(diff, s[(int) (0.05 * valid)], s[Math.max(0, (int) (0.95 * valid) - 1)], weeks.size(), valid);
+        double tail = (1 - level) / 2;
+        return new Ci(diff, s[(int) (tail * valid)], s[Math.max(0, (int) ((1 - tail) * valid) - 1)], weeks.size(), valid);
     }
 
     private static Map<String, double[]> group(List<TradeR> t, Function<TradeR, Double> f) {

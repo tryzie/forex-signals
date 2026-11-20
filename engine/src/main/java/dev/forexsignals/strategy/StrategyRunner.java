@@ -83,6 +83,14 @@ public final class StrategyRunner {
                 v[1] = Math.max(v[1], newIndicator(r).minBars());
             }
             perTf.forEach((tf, v) -> warmupNeeded.put(s.meta().id() + "|" + tf, Math.max(3 * v[0] + 10, v[1])));
+            // Context indicators: warm-up per (context tf), applied to every context symbol.
+            Map<Timeframe, int[]> ctxTf = new EnumMap<>(Timeframe.class);
+            for (IndicatorRequest r : s.meta().contextIndicators()) {
+                int[] v = ctxTf.computeIfAbsent(r.tf(), k -> new int[]{0, 1});
+                v[0] = Math.max(v[0], r.period());
+                v[1] = Math.max(v[1], newIndicator(r).minBars());
+            }
+            ctxTf.forEach((tf, v) -> warmupNeeded.put(s.meta().id() + "|ctx|" + tf, Math.max(3 * v[0] + 10, v[1])));
             warmupBlocked.put(s.meta().id(), 0L);
             evaluated.put(s.meta().id(), 0L);
         }
@@ -160,6 +168,7 @@ public final class StrategyRunner {
         final Map<IndicatorRequest, Indicator> indicators = new HashMap<>();
         final Map<IndicatorRequest, double[]> values = new HashMap<>();      // ring of the last values
         final Map<IndicatorRequest, Instant[]> stamps = new HashMap<>();     // close time of the bar each value is for
+        final Map<Timeframe, java.util.TreeMap<Instant, Integer>> byOpen = new EnumMap<>(Timeframe.class); // open time -> bar number
 
         void apply(Candle c, List<Strategy> strategies) {
             Timeframe tf = c.timeframe();
@@ -169,9 +178,17 @@ public final class StrategyRunner {
             counts.put(tf, n + 1);
             // Create any indicator a strategy declares for this timeframe, then update all of this timeframe.
             for (Strategy s : strategies) {
-                if (!s.meta().symbols().contains(c.symbol())) continue;
-                for (IndicatorRequest r : s.meta().indicators()) if (r.tf() == tf) indicators.computeIfAbsent(r, StrategyRunner::newIndicator);
+                if (s.meta().symbols().contains(c.symbol())) {
+                    for (IndicatorRequest r : s.meta().indicators()) if (r.tf() == tf) indicators.computeIfAbsent(r, StrategyRunner::newIndicator);
+                }
+                if (s.meta().contextSymbols().contains(c.symbol())) {
+                    for (IndicatorRequest r : s.meta().contextIndicators()) if (r.tf() == tf) indicators.computeIfAbsent(r, StrategyRunner::newIndicator);
+                }
             }
+            // Open-time index of recent bars (for context lookups by open time).
+            java.util.TreeMap<Instant, Integer> idx = byOpen.computeIfAbsent(tf, k -> new java.util.TreeMap<>());
+            idx.put(c.openTime(), n);
+            if (idx.size() > SERIES_CAPACITY) idx.pollFirstEntry();
             for (var e : indicators.entrySet()) {
                 if (e.getKey().tf() != tf) continue;
                 e.getValue().update(c);
@@ -261,6 +278,46 @@ public final class StrategyRunner {
         @Override
         public OptionalDouble donchianLow(Timeframe tf, int n, boolean excludeLatest) {
             double v = donchian(tf, n).lowest(excludeLatest);
+            return Double.isNaN(v) ? OptionalDouble.empty() : OptionalDouble.of(v);
+        }
+
+        private SymbolData context(String symbol, Timeframe tf, Instant openTime) {
+            if (!s.meta().contextSymbols().contains(symbol)) {
+                throw new LookaheadViolation(s.meta().id() + " read undeclared context symbol " + symbol);
+            }
+            // A bar whose period ends after now cannot be closed: asking for it is a lookahead attempt.
+            if (tf.bucketEnd(tf.bucketStart(openTime)).isAfter(now)) {
+                throw new LookaheadViolation(s.meta().id() + " asked for " + symbol + " " + tf + " bar opening " + openTime
+                        + ", which closes after " + now);
+            }
+            return data.get(symbol);
+        }
+
+        @Override
+        public java.util.Optional<Candle> contextBar(String symbol, Timeframe tf, Instant openTime) {
+            SymbolData cd = context(symbol, tf, openTime);
+            if (cd == null) return java.util.Optional.empty();
+            Integer n = cd.byOpen.getOrDefault(tf, new java.util.TreeMap<>()).get(openTime);
+            if (n == null || cd.count(tf) - n > SERIES_CAPACITY) return java.util.Optional.empty();
+            Candle c = cd.series.get(tf)[n % SERIES_CAPACITY];
+            if (c.closeTime().isAfter(now)) throw new LookaheadViolation(s.meta().id() + " saw context " + symbol + " " + tf + " bar closing " + c.closeTime() + " at " + now);
+            return java.util.Optional.of(c);
+        }
+
+        @Override
+        public OptionalDouble contextInd(String symbol, Timeframe tf, IndicatorKind kind, int period, Instant openTime) {
+            IndicatorRequest r = new IndicatorRequest(tf, kind, period);
+            if (!s.meta().contextIndicators().contains(r)) throw new LookaheadViolation(s.meta().id() + " read undeclared context indicator " + r);
+            SymbolData cd = context(symbol, tf, openTime);
+            if (cd == null) return OptionalDouble.empty();
+            Integer n = cd.byOpen.getOrDefault(tf, new java.util.TreeMap<>()).get(openTime);
+            if (n == null || cd.count(tf) - n > VALUE_HISTORY || cd.values.get(r) == null) return OptionalDouble.empty();
+            int i = n % VALUE_HISTORY;
+            Instant stamp = cd.stamps.get(r)[i];
+            if (stamp == null) return OptionalDouble.empty();
+            if (stamp.isAfter(now)) throw new LookaheadViolation(s.meta().id() + " saw context " + symbol + " " + r + " value from " + stamp + " at " + now);
+            if (n + 1 < warmupBars(s.meta().id() + "|ctx", tf)) return OptionalDouble.empty(); // context warm-up
+            double v = cd.values.get(r)[i];
             return Double.isNaN(v) ? OptionalDouble.empty() : OptionalDouble.of(v);
         }
 

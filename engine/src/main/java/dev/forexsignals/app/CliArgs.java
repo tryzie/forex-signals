@@ -13,10 +13,10 @@ import java.util.Set;
  */
 public record CliArgs(Mode mode, Map<String, String> options) {
 
-    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK, CHATID, SPREADSAMPLE, FREEZE, VALIDATE, USDXCHECK }
+    public enum Mode { LIVE, REPLAY, IMPORT, GAPREPORT, SPOTCHECK, CHATID, SPREADSAMPLE, FREEZE, VALIDATE, USDXCHECK, HYPOTHESIS }
 
     public static final String USAGE = """
-            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid|spreadsample|freeze|validate|usdxcheck> [options]
+            usage: java -jar forex-signals.jar --mode=<live|replay|import|gapreport|spotcheck|chatid|spreadsample|freeze|validate|usdxcheck|hypothesis> [options]
 
               common    --config=<path>      conf.xml (default ~/.forexsignals/conf.xml, or $FOREXSIGNALS_CONF)
                         --feed=<deriv|ctrader|synthetic>   default: <feed primary> in conf.xml
@@ -35,6 +35,9 @@ public record CliArgs(Mode mode, Map<String, String> options) {
                         backtest + random control + cost stress + walk-forward + validation gate (Phase 2)
                         [--diagnostic]       labelled DIAGNOSTIC: no verdict is recorded
               usdxcheck [--report=<dir>]     verify the broker USDX against the pre-registered criteria V1-V4
+              hypothesis --stage=development|holdout [--confirm-holdout-once=true] [--report=<dir>]
+                                             pre-registered EURUSD confirmation test (docs/hyp/eurusd-confirmation.md);
+                                             the holdout runs exactly once, only after a finished development run
               chatid    [--wait=PT2M]        print the Telegram chat ID of whoever pressed Start on the bot
                         (token read from the encrypted conf.xml, never shown; no database needed)
 
@@ -44,7 +47,7 @@ public record CliArgs(Mode mode, Map<String, String> options) {
     /** Every option name the code reads (any mode). Anything else is a usage error. */
     public static final Set<String> KNOWN_OPTIONS = Set.of(
             "mode", "config", "feed", "symbols", "duration", "seed", "from", "to", "source",
-            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf", "wait", "note", "strategies", "news", "diagnostic");
+            "compare-m5", "write-candles", "years", "report", "list-min", "per-tf", "wait", "note", "strategies", "news", "diagnostic", "stage", "confirm-holdout-once");
 
     public static final class UsageException extends Exception {
         public UsageException(String message) { super(message); }

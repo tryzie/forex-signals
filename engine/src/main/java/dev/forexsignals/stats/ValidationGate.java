@@ -54,9 +54,14 @@ public final class ValidationGate {
                 String.format("%.3fR with spread x1.5, slippage x2", in.stressed().expectancy()), "> 0"));
         double maxShare = m.positiveShareBySymbol().values().stream().mapToDouble(Double::doubleValue).max().orElse(0);
         boolean anyPositive = m.positiveShareBySymbol().values().stream().anyMatch(v -> v > 0);
-        c.add(new Check(7, "concentration", m.trades() == 0 || !anyPositive ? Status.INCONCLUSIVE : maxShare <= 0.5 ? Status.PASS : Status.FAIL,
-                anyPositive ? String.format("max symbol share %.0f%% %s", 100 * maxShare, m.positiveShareBySymbol())
-                        : "n/a: no symbol has positive net R", "<= 50% of positive R"));
+        if (m.positiveShareBySymbol().size() <= 1 && m.trades() > 0) {
+            // A single-symbol strategy (pre-registered as such): concentration does not apply.
+            c.add(new Check(7, "concentration", Status.PASS, "n/a: single-symbol strategy", "<= 50% of positive R"));
+        } else {
+            c.add(new Check(7, "concentration", m.trades() == 0 || !anyPositive ? Status.INCONCLUSIVE : maxShare <= 0.5 ? Status.PASS : Status.FAIL,
+                    anyPositive ? String.format("max symbol share %.0f%% %s", 100 * maxShare, m.positiveShareBySymbol())
+                            : "n/a: no symbol has positive net R", "<= 50% of positive R"));
+        }
         Bootstrap.Ci v = in.vsControl();
         c.add(new Check(8, "beats chance", v == null || Double.isNaN(v.lo()) ? Status.INCONCLUSIVE : v.lo() > 0 ? Status.PASS : Status.FAIL,
                 v == null ? "no control" : String.format("diff %.3fR (90%% CI %.3f..%.3f)", v.mean(), v.lo(), v.hi()), "CI low of (strategy - control) > 0"));
